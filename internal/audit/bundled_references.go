@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -206,7 +207,11 @@ func checkBundledReferences(root string, files []mdFileInfo, mdLinks map[string]
 				if !link.fromRoot && !strings.HasPrefix(filepath.ToSlash(path), "/") && !filepath.IsAbs(path) && !isDriveReference(path) && !strings.HasPrefix(path, "~/") {
 					path = filepath.Join(fileDir, ".") + string(filepath.Separator) + path
 				}
-				return checker.inspect(path)
+				status := checker.inspect(path)
+				if status == "reference-escapes-root" && trustedReference(checker.root, path) {
+					return ""
+				}
+				return status
 			}
 			status := ""
 			if decoded, err := url.PathUnescape(raw); link.markdown && err == nil && decoded != raw {
@@ -415,4 +420,74 @@ func bundledAbsoluteRelative(root, target string) (string, bool) {
 		return "", false
 	}
 	return target[len(prefix):], true
+}
+
+// trustedReference permits only an explicitly named file, and only for skills
+// inside the same configured root. OpenRoot enforces symlink containment.
+type trustedReferenceEntry struct {
+	Root   string `json:"root"`
+	Target string `json:"target"`
+}
+
+func trustedReference(skillRoot, reference string) bool {
+	if filepath.IsAbs(reference) || isDriveReference(reference) || strings.HasPrefix(reference, "~/") {
+		return false
+	}
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return false
+	}
+	configPath := filepath.Join(configDir, "skillshare", "trusted-references.json")
+	if override := os.Getenv("SKILLSHARE_TRUSTED_REFERENCES"); override != "" {
+		configPath = override
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil || len(data) > 65536 {
+		return false
+	}
+	var entries []trustedReferenceEntry
+	if json.Unmarshal(data, &entries) != nil {
+		return false
+	}
+	physicalSkill, err := filepath.EvalSymlinks(skillRoot)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if !filepath.IsAbs(entry.Root) || filepath.IsAbs(entry.Target) {
+			continue
+		}
+		physicalRoot, err := filepath.EvalSymlinks(entry.Root)
+		if err != nil {
+			continue
+		}
+		rel, err := filepath.Rel(physicalRoot, physicalSkill)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			continue
+		}
+		root, err := os.OpenRoot(physicalRoot)
+		if err != nil {
+			continue
+		}
+		requested, err := root.Open(rel + string(filepath.Separator) + reference)
+		if err != nil {
+			root.Close()
+			continue
+		}
+		allowed, err := root.Open(entry.Target)
+		if err != nil {
+			requested.Close()
+			root.Close()
+			continue
+		}
+		actualInfo, err1 := requested.Stat()
+		allowedInfo, err2 := allowed.Stat()
+		requested.Close()
+		allowed.Close()
+		root.Close()
+		if err1 == nil && err2 == nil && actualInfo.Mode().IsRegular() && os.SameFile(actualInfo, allowedInfo) {
+			return true
+		}
+	}
+	return false
 }
