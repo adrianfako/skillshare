@@ -224,6 +224,11 @@ func checkBundledReferences(root string, files []mdFileInfo, mdLinks map[string]
 			} else {
 				status = inspect(raw)
 			}
+			if status == "dangling-link" && link.markdown && link.target == "url" &&
+				strings.Contains(link.snippet, "[PR #123](url)") &&
+				trustedReference(checker.root, filepath.Join(fileDir, filepath.Base(f.relPath))) {
+				continue // reviewed template example in an explicitly trusted file
+			}
 			if status == "" || (link.implicit && status == "reference-escapes-root") {
 				continue
 			}
