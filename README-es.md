@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **Última versión**: v0.30.7 — Deja pasar en CI los hallazgos aceptados: `skillshare audit --respect-accepted` ya no falla por los hallazgos que aceptaste con `--force` durante `install` o `update`, igual que la verificación de `update`. Siguen en el informe, marcados como aceptados. [Referencia de audit →](https://skillshare.runkids.cc/docs/reference/commands/audit#accepted-findings) · [Todas las versiones →](https://github.com/runkids/skillshare/releases)
+> **Última versión**: v0.30.10 — Confía en los hooks de Codex que escribe skillshare: `skillshare hooks sync --trust -g` lista los hooks nuevos o modificados con sus comandos y registra la confianza de Codex cuando confirmas, para que Codex deje de omitirlos. `--yes` omite la pregunta en scripts, y la página Hooks del dashboard ofrece la misma acción. [Referencia de hooks →](https://skillshare.runkids.cc/docs/reference/commands/hooks) · [Todas las versiones →](https://github.com/runkids/skillshare/releases)
 
 ## Por qué skillshare
 

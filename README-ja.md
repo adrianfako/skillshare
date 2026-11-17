@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **最新バージョン**：v0.30.7 — 承認済みの検出結果を CI で通せます。`skillshare audit --respect-accepted` は、`install` や `update` で `--force` を付けて承認した検出結果では失敗しなくなります。update のゲートと同じ扱いです。検出結果はレポートに残り、承認済みとして表示されます。[audit リファレンス →](https://skillshare.runkids.cc/ja/docs/reference/commands/audit#accepted-findings) · [変更履歴 →](https://skillshare.runkids.cc/changelog)
+> **最新バージョン**：v0.30.10 — skillshare が書き込んだ Codex のフックを信頼できます。`skillshare hooks sync --trust -g` は新規または変更されたフックをコマンド付きで一覧表示し、確認後に Codex の信頼を記録するので、Codex がフックをスキップしなくなります。スクリプト向けに `--yes` で確認を省略でき、ダッシュボードの Hooks ページにも同じ操作があります。 [hooks リファレンス →](https://skillshare.runkids.cc/ja/docs/reference/commands/hooks) · [変更履歴 →](https://skillshare.runkids.cc/changelog)
 
 ## skillshare を使う理由
 

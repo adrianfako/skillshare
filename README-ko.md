@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **최신 버전**: v0.30.7 — 수락한 findings를 CI에서 통과시키세요. `skillshare audit --respect-accepted`는 `install`이나 `update`에서 `--force`로 수락한 findings 때문에 더 이상 실패하지 않으며, update 게이트와 같은 방식으로 처리합니다. 해당 findings는 보고서에 남고 수락됨으로 표시됩니다. [audit 레퍼런스 →](https://skillshare.runkids.cc/ko/docs/reference/commands/audit#accepted-findings) · [변경 기록 →](https://skillshare.runkids.cc/changelog)
+> **최신 버전**: v0.30.10 — skillshare가 기록한 Codex hook을 신뢰하세요. `skillshare hooks sync --trust -g`는 새로 추가되거나 변경된 hook을 command와 함께 나열하고, 확인하면 Codex의 신뢰를 기록하므로 Codex가 더 이상 건너뛰지 않습니다. 스크립트에서는 `--yes`로 질문을 건너뛸 수 있고, 대시보드의 Hooks 페이지에도 같은 동작이 있습니다. [hooks 레퍼런스 →](https://skillshare.runkids.cc/ko/docs/reference/commands/hooks) · [변경 기록 →](https://skillshare.runkids.cc/changelog)
 
 ## skillshare를 쓰는 이유
 
