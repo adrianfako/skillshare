@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **最新版本**：v0.30.7 — 让已接受的 findings 在 CI 中通过：`skillshare audit --respect-accepted` 不再因你在 `install` 或 `update` 时用 `--force` 接受的 findings 而失败，处理方式与 update 的检查关卡相同。这些 findings 仍保留在报告中，并标记为已接受。[audit 参考 →](https://skillshare.runkids.cc/zh-Hans/docs/reference/commands/audit#accepted-findings) · [更新记录 →](https://skillshare.runkids.cc/changelog)
+> **最新版本**：v0.30.10 — 信任 skillshare 写入的 Codex hooks：`skillshare hooks sync --trust -g` 会列出新增或变更的 hooks 及其命令，在你确认后记录 Codex 的信任，Codex 就不会再跳过它们。脚本可用 `--yes` 跳过询问，dashboard 的 Hooks 页面也有相同的操作。 [hooks 参考 →](https://skillshare.runkids.cc/zh-Hans/docs/reference/commands/hooks) · [更新记录 →](https://skillshare.runkids.cc/changelog)
 
 ## 为什么用 skillshare
 
