@@ -2,8 +2,10 @@ name: test-linux
 on:
   push:
     branches: [main]
+    paths-ignore: ['website/**', 'README.md', 'CHANGELOG.md']
   pull_request:
     branches: [main]
+    paths-ignore: ['website/**', 'README.md', 'CHANGELOG.md']
   workflow_dispatch:
 
 permissions:
