@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 25
     container:
       image: ci-base:97273d203c1c
-      options: --memory=4g --memory-swap=4g --cpus=2 --pids-limit=512
+      options: --init --memory=4g --memory-swap=4g --cpus=2 --pids-limit=512
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 25
     container:
       image: ci-base:97273d203c1c
-      options: --memory=4g --memory-swap=4g --cpus=2 --pids-limit=512
+      options: --init --memory=4g --memory-swap=4g --cpus=2 --pids-limit=512
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

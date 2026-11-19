@@ -3,7 +3,8 @@ set -euo pipefail
 
 useradd --create-home --user-group skillshare-ci
 chown -R skillshare-ci:skillshare-ci "$GITHUB_WORKSPACE"
-runuser -u skillshare-ci -- env PATH="$PATH" SKILLSHARE_TEST_BINARY="$GITHUB_WORKSPACE/bin/skillshare" \
+trap 'cat /sys/fs/cgroup/pids.events 2>/dev/null || true' EXIT
+runuser -u skillshare-ci -- env PATH="$PATH" GOMAXPROCS=2 SKILLSHARE_TEST_BINARY="$GITHUB_WORKSPACE/bin/skillshare" \
     bash -e -s -- "${1:?expected unit or integration}" <<'CHECKS'
 test "$(id -u)" -ne 0
 case "$1" in
@@ -11,11 +12,11 @@ case "$1" in
         make docs-check test-herdr build fmt-check lint
         python3 -B -m unittest discover -s scripts/release -p '*_test.py'
         python3 -B -m unittest discover -s scripts/design -p '*_test.py'
-        go test -race ./cmd/skillshare/... ./internal/...
+        go test -race -p 2 -parallel 2 ./cmd/skillshare/... ./internal/...
         ;;
     integration)
         make build
-        go test -race ./tests/integration/...
+        go test -race -p 2 -parallel 2 ./tests/integration/...
         ;;
     *) exit 2 ;;
 esac
