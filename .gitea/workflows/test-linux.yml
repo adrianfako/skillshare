@@ -1,0 +1,43 @@
+name: test-linux
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    container:
+      image: ci-base:97273d203c1c
+      options: --memory=4g --memory-swap=4g --cpus=2 --pids-limit=512
+    steps:
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: https://github.com/actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: bash .gitea/scripts/test-linux.sh unit
+
+  integration:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    container:
+      image: ci-base:97273d203c1c
+      options: --memory=4g --memory-swap=4g --cpus=2 --pids-limit=512
+    steps:
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: https://github.com/actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: bash .gitea/scripts/test-linux.sh integration
