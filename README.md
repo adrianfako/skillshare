@@ -14,7 +14,7 @@
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/v/release/runkids/skillshare" alt="Release"></a>
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/downloads/runkids/skillshare/total" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue" alt="Platform">
-  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue" alt="Ask DeepWiki"></a>
   <a href="https://ko-fi.com/williehung"><img src="https://img.shields.io/badge/Support-skillshare-FF5E5B?logo=kofi&logoColor=white" alt="Support skillshare on Ko-fi"></a>
 </p>
 
@@ -301,7 +301,11 @@ make check  # format + lint + test
 
 ## Contributors
 
-Thanks to everyone who helped shape skillshare.
+[View contributors on GitHub](https://github.com/runkids/skillshare/graphs/contributors)
+
+### Community thanks
+
+Thank you to everyone who has reported a bug, suggested an improvement, or helped test a fix.
 
 <a href="https://github.com/leeeezx"><img src="https://github.com/leeeezx.png" width="50" style="border-radius:50%" alt="leeeezx"></a>
 <a href="https://github.com/Vergil333"><img src="https://github.com/Vergil333.png" width="50" style="border-radius:50%" alt="Vergil333"></a>

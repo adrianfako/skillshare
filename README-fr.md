@@ -14,7 +14,7 @@
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/v/release/runkids/skillshare" alt="Release"></a>
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/downloads/runkids/skillshare/total" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue" alt="Platform">
-  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue" alt="Ask DeepWiki"></a>
 </p>
 
 <p align="center">
@@ -300,7 +300,11 @@ make check  # format + lint + test
 
 ## Contributeurs
 
-Merci à toutes les personnes qui ont contribué à skillshare. La liste se trouve dans le [README en anglais](README.md#contributors).
+[Voir les contributeurs sur GitHub](https://github.com/runkids/skillshare/graphs/contributors)
+
+### Remerciements à la communauté
+
+Merci pour vos signalements de bugs, vos suggestions et vos tests. [README en anglais](README.md#community-thanks).
 
 ---
 
