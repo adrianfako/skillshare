@@ -9,6 +9,34 @@ All notable changes to skillshare are documented here. For the full commit histo
 
 ---
 
+## [0.30.13] - 2026-11-21
+
+### New Features
+
+- **Extras in the Herdr panel** — the panel showed skills, agents, MCP servers, plugins and hooks, but not extras, which `sync --all` also syncs, so Overview could say *Everything is in sync* while an extra still waited for one. Extras are now listed with the other kinds: Overview counts them and the Sync button covers an extra that waits for a sync, and Library has an Extras tab with file extras and folder extras grouped by sync state. A preview shows the file, or a folder's files, and each target's mode and status. An extra whose source is missing is listed under **Need a look** with "source missing", since a sync cannot fix it. Memory notes are listed on their own under **Memory notes**, without a sync state, and are not counted twice. Nothing new can be changed from the panel. See [Using skillshare in Herdr](https://skillshare.runkids.cc/docs/learn/with-herdr). Thanks to @eirikc for the request. Refs: #930, #961, #972.
+- **Check only the selected skills on the Updates tab** — a skill whose remote did not answer showed "Check failed", and the only way to check it again was to check everything once more. Ticking rows on the Skills tab of **Updates** now offers **Check N selected**, which checks only those skills and tracked repositories; every other row keeps its last result. See [`ui`](https://skillshare.runkids.cc/docs/reference/commands/ui). Thanks to @chung1912 for the request. Refs: #963, #965.
+
+### Bug Fixes
+
+- **Updating an agent from the dashboard keeps your local edits** — the update replaced an agent's file with the remote version even when you had edited it since install. An edited agent is now skipped like an edited skill: the Updates tab offers **Force Retry**, and the agent's own page asks before overwriting. An edited agent that is already at the remote version still shows as up to date, and assigning targets to an agent from the dashboard no longer counts as a local edit. Refs: #967.
+- **Check works on the Agents tab of Updates** — pressing **Check for updates** on the Agents tab marked every agent "Check failed", because the check looked only at skills. Agents are now checked the way `skillshare check agents` checks them, and a locally edited agent can show **Modified locally**. Checking skills no longer overwrites the status of an agent with the same name or repository folder. Refs: #966.
+
+## [0.30.12] - 2026-11-18
+
+### New Features
+
+- **Register every Git checkout in a workspace with `--scan`** — some tools, such as Codex, look for project skills only up to the Git root of the folder you open, so skills synced to a workspace folder were not seen inside the checkouts and worktrees it holds. `skillshare project add <root> --scan DIR` now registers the root and each Git checkout found below the scan folders as ordinary project entries with the same settings, in one write. It only adds: a checkout already registered with the same settings is kept, and one with different settings, its own `.skillshare/`, or a name that is already used is skipped with the reason, so it is safe to rerun after a new clone. On a name clash the name comes from the path (`.worktrees/app-a` → `worktrees-app-a`) and is saved. A scan folder that is missing or cannot be read is skipped with a warning. In the dashboard, **Add project** has **Also add each checkout inside this folder**, and **Review** lists each folder as Added, Kept or Skipped before anything is written. See [`project`](https://skillshare.runkids.cc/docs/reference/commands/project#scan). Thanks to @amphetamlne for the request. Refs: #953, #958.
+  ```bash
+  skillshare project add ~/work/suite --scan . --scan .worktrees \
+    --target codex --skills-include 'team-*' --dry-run
+  ```
+
+### Bug Fixes
+
+- **Removing a project says where its MCP and hook settings went** — a removed project's `mcp.projects` and `hooks.projects` entries stay on purpose, but the CLI only warned that `mcp.projects` still contained the root, with no next step. The warning now names the settings and where to remove them, and the dashboard's remove dialog says they stay and that removing the leftover row deletes them. Refs: #955.
+- **MCP server rows show each Agent once** — rows drew the same Agent logos twice, in the count button and as chips under the name. Only the count button remains; opening it shows the toggles with each Agent's name. Target pickers on MCP and plugin rows fold open and closed and stay still under reduced motion, and a project's MCP **Targets** reads like the global defaults, with **Back to global** behind a confirm. Refs: #952.
+- **Removing an OMP plugin no longer fails its own preview** — with other OMP plugins registered, apply could reject the removal with "plugin state changed since preview", because their package files were read in a different order each time. Refs: #949.
+
 ## [0.30.11] - 2026-11-17
 
 ### New Features

@@ -14,7 +14,7 @@
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/v/release/runkids/skillshare" alt="Release"></a>
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/downloads/runkids/skillshare/total" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue" alt="Platform">
-  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue" alt="Ask DeepWiki"></a>
 </p>
 
 <p align="center">
@@ -299,7 +299,11 @@ make check  # format + lint + test
 
 ## 기여자
 
-skillshare를 함께 만들어 주신 모든 분께 감사드립니다. 전체 명단은 [영문 README](README.md#contributors)에 있습니다.
+[GitHub에서 기여자 보기](https://github.com/runkids/skillshare/graphs/contributors)
+
+### 커뮤니티에 보내는 감사
+
+버그를 제보하고 개선을 제안하고 수정 사항을 테스트해 주신 모든 분께 감사드립니다. [영문 README](README.md#community-thanks)에 있습니다.
 
 ---
 

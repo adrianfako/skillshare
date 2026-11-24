@@ -14,7 +14,7 @@
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/v/release/runkids/skillshare" alt="Release"></a>
   <a href="https://github.com/runkids/skillshare/releases"><img src="https://img.shields.io/github/downloads/runkids/skillshare/total" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue" alt="Platform">
-  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://deepwiki.com/runkids/skillshare"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue" alt="Ask DeepWiki"></a>
 </p>
 
 <p align="center">
@@ -299,7 +299,11 @@ make check  # format + lint + test
 
 ## 貢獻者
 
-感謝每一位讓 skillshare 變得更好的人。完整名單在[英文版 README](README.md#contributors)。
+[在 GitHub 查看貢獻者](https://github.com/runkids/skillshare/graphs/contributors)
+
+### 社群致謝
+
+感謝每一位回報問題、提出建議或協助測試修正的朋友。 [英文版 README](README.md#community-thanks)。
 
 ---
 
