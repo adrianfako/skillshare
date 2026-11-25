@@ -703,7 +703,7 @@ projects:
 - **`target` と `collect` は project に触れません。** `skillshare target` は `targets` セクションのみを一覧・編集し、`collect` は project 自身の Skill を Source に取り込みません。[`skillshare project`](/docs/reference/commands/project) でプロジェクトの追加・編集・同期・削除を行うか、ダッシュボードの **プロジェクト** ページを使用してください。
 - `targets` フロントマターフィールドを持つ Skill はツールと照合されるため、`targets: [claude]` は `shop-web@claude` に届きます。
 
-同じフォルダーの MCP サーバーは、同じフォルダーをキーとして [`mcp.projects`](/docs/reference/commands/mcp#manage-several-projects-from-the-global-config) に一覧されます。手順は[多数の Project を 1 つの Config で](/docs/how-to/recipes/many-projects-one-config)を参照してください。
+同じフォルダーの MCP サーバーは、同じフォルダーをキーとして [`mcp.projects`](/docs/reference/commands/mcp#manage-several-projects-from-the-global-config) に一覧されます。`global: false` のサーバーは、`use` に列挙したフォルダーにのみ読み込まれます。[選んだ project とサーバーを共有する](/docs/reference/commands/mcp#share-a-server-with-chosen-projects)を参照してください。手順は[多数の Project を 1 つの Config で](/docs/how-to/recipes/many-projects-one-config)を参照してください。
 
 ### `projects_storage` {#projects-storage}
 
@@ -781,7 +781,7 @@ Extras はグローバルモードとプロジェクトモードの両方で機�
 
 ### `ignore`
 
-Sync 中にスキップするファイルの glob パターン。
+Sync 中にスキップするファイルの glob パターン。`diff` も copy モードのターゲットを比較するとき、同じファイルを除外します。
 
 ```yaml
 ignore:
@@ -791,8 +791,11 @@ ignore:
 ```
 
 **デフォルトのパターン:**
-- `**/.DS_Store`
-- `**/.git/**`
+- `.DS_Store`
+- `.git/`
+- `__pycache__/`
+
+後に書いた `!` パターンは、無視したフォルダ内のファイルであってもパスを再び含めます。`docs/` と `!docs/keep.md` を指定すると、`docs/` からは `docs/keep.md` だけがコピーされます。`!*.md` のようにアンカーされていない否定パターンは、無視したすべてのフォルダ内の一致するファイルを再び含めるため、sync はそれらのフォルダも走査します。
 
 ### `gitlab_hosts`
 

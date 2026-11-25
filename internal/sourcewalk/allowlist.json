@@ -689,7 +689,7 @@
   },
   {
     "file": "internal/resource/agent.go",
-    "function": "(AgentKind).Discover",
+    "function": "discoverAgents",
     "callee": "filepath.Walk",
     "root": "walkRoot",
     "reason": "agents",
@@ -697,7 +697,7 @@
   },
   {
     "file": "internal/resource/agent.go",
-    "function": "(AgentKind).Discover",
+    "function": "discoverAgents",
     "callee": "os.ReadDir",
     "root": "walkRoot",
     "reason": "agents",
@@ -873,11 +873,11 @@
   },
   {
     "file": "internal/sync/copy.go",
-    "function": "collectChecksumEntries",
+    "function": "walkCopiedFiles",
     "callee": "filepath.Walk",
     "root": "root",
     "reason": "skill-dir",
-    "note": "Compute checksums for one skill directory"
+    "note": "List the files copy mode copies from one skill directory, for checksums and file diffs"
   },
   {
     "file": "internal/sync/extension.go",

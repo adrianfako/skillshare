@@ -220,7 +220,7 @@ Codex trust
 
 只寫入 `trusted_hash`，而且只會新增。你在 Codex 中停用的 hook 維持停用並會被回報。`enabled`、`config.toml` 的其餘部分，以及不屬於 Skillshare 的 hooks 都不會更動。hook 移動或刪除後，舊項目仍留在 `config.toml` 中。它只會對應到該位置上 event、matcher 與 handler 都相同的 hook，因此不會讓另一個 hook 變成已信任。
 
-`codex` 不在 `PATH` 上或 Codex 失敗時，hook 檔案仍會寫入，指令以 "hook files were written, but Codex trust was not recorded" 失敗。有多個 Codex home 時，Codex 無法列出或寫入失敗的 home 不會中止其他 home：錯誤會列出已記錄與未記錄的 home。不帶 `--trust` 的 `hooks sync` 不會啟動 Codex，也不會改變信任。`--trust` 只能用於全域模式；`sync hooks`、`hooks list` 與專案模式會拒絕它。Dashboard 的 Hooks 頁面（global scope）有相同的操作：它列出需要信任的 hooks 及其 command，只有在你於對話框中確認後才記錄信任。
+`codex` 不在 `PATH` 上或 Codex 失敗時，hook 檔案仍會寫入，指令以 "hook files were written, but Codex trust was not recorded" 失敗。有多個 Codex home 時，Codex 無法列出或寫入失敗的 home 不會中止其他 home：錯誤會列出已記錄與未記錄的 home。不帶 `--trust` 的 `hooks sync` 不會啟動 Codex，也不會改變信任。`--trust` 只能用於全域模式；`sync hooks`、`hooks list` 與專案模式會拒絕它。`hooks.projects` 寫入專案的 hook 不在其列，請在 Codex 的 `/hooks` 中信任。Dashboard 的 Hooks 頁面（global scope）有相同的操作：它列出需要信任的 hooks 及其 command，只有在你於對話框中確認後才記錄信任。
 
 ## Git hooks {#git-hooks}
 
@@ -262,7 +262,7 @@ plan 保留實際的 `add`、`update`、`remove` 或 `unchanged` 動作，並透
 
 ## 專案、衝突與復原
 
-global 設定的 `hooks.projects` 將絕對專案路徑對應到相同 Entry 格式的 `entries`，可在「專案 → Hooks」管理。已有 `.skillshare/config.yaml` 的專案須使用 project scope；單一專案同步只處理該專案。
+global 設定的 `hooks.projects` 將絕對專案路徑對應到相同 Entry 格式的 `entries`，可在「專案 → Hooks」管理；在那裡按 **停止管理這裡的 hook** 會把該路徑從 `hooks.projects` 移除，下次同步時會刪掉 Skillshare 寫在其下的 hook。已有 `.skillshare/config.yaml` 的專案須使用 project scope；單一專案同步只處理該專案。
 
 同步保留無關設定與非 Skillshare 管理的 hooks。內容相同不代表擁有權。自有輸出若被外部修改，停用、移除與還原也會回報衝突。明確取代僅作用於選定 entry；預覽會列出完整動作與路徑。共用檔案的每一列 plan 會列出該 entry 新增（`+`）、更新（`~`）、移除（`−`）的 event，JSON plan 的 `events` 也有相同資訊。`update` 表示該 entry 在檔案中仍有註冊，`remove` 表示完全離開該檔案。編輯會保留檔案原本的格式（精簡或縮排）；Skillshare 新增的 `hooks` key 在最後一個 hook 移除時一併移除。Skillshare 建立的檔案若已沒有其他內容就會刪除，連同它建立且已清空的資料夾；預覽會把這顯示為刪除檔案。原本就存在的檔案與資料夾，以及你加入的任何內容都會保留。
 

@@ -674,7 +674,7 @@ projects:
 - **`target` 與 `collect` 不會動到 projects。** `skillshare target` 只會列出並編輯 `targets` 區塊，`collect` 也不會把 project 自己的 skills 拉回 source。使用 [`skillshare project`](/docs/reference/commands/project) 新增、編輯、同步或移除專案，也可以使用 dashboard 的 **Projects** 頁面。
 - 帶有 `targets` frontmatter 欄位的 skill 會依工具比對，因此 `targets: [claude]` 會涵蓋 `shop-web@claude`。
 
-同樣這些資料夾的 MCP servers 列在 [`mcp.projects`](/docs/reference/commands/mcp#manage-several-projects-from-the-global-config) 底下，以相同的資料夾為 key。逐步設定教學請參見[多個 Projects，一份 Config](/docs/how-to/recipes/many-projects-one-config)。
+同樣這些資料夾的 MCP servers 列在 [`mcp.projects`](/docs/reference/commands/mcp#manage-several-projects-from-the-global-config) 底下，以相同的資料夾為 key。設為 `global: false` 的 server 只會在以 `use` 列出它的資料夾中載入；請參閱[與指定的 projects 共用 server](/docs/reference/commands/mcp#share-a-server-with-chosen-projects)。逐步設定教學請參見[多個 Projects，一份 Config](/docs/how-to/recipes/many-projects-one-config)。
 
 ### `projects_storage` {#projects-storage}
 
@@ -748,7 +748,7 @@ Extras 在 Global 與 Project mode 下都能運作。在 Project mode 下，Sour
 
 ### `ignore`
 
-同步期間要跳過的檔案 glob 樣式。
+同步期間要跳過的檔案 glob 樣式。`diff` 比對 copy 模式的 target 時，也會排除相同的檔案。
 
 ```yaml
 ignore:
@@ -758,8 +758,11 @@ ignore:
 ```
 
 **預設樣式：**
-- `**/.DS_Store`
-- `**/.git/**`
+- `.DS_Store`
+- `.git/`
+- `__pycache__/`
+
+後面的 `!` 樣式會重新納入路徑，即使是被忽略資料夾中的檔案：設定 `docs/` 與 `!docs/keep.md` 時，`docs/` 中只會複製 `docs/keep.md`。像 `!*.md` 這樣未錨定的否定樣式會重新納入每個被忽略資料夾中符合的檔案，因此 sync 也會走訪這些資料夾。
 
 ### `gitlab_hosts`
 

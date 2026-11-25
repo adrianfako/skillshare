@@ -17,6 +17,7 @@ import (
 	"skillshare/internal/sync"
 	"skillshare/internal/uninstall"
 	"skillshare/internal/utils"
+	versioncheck "skillshare/internal/version"
 )
 
 type skillItem struct {
@@ -42,20 +43,23 @@ type skillItem struct {
 	ManualOnly bool `json:"manualOnly,omitempty"`
 	// Description is the source file's frontmatter description, shown under the name in the list.
 	Description string `json:"description,omitempty"`
+	// MetadataVersion is the frontmatter's metadata.version as written; Version is the installed commit.
+	MetadataVersion string `json:"metadataVersion,omitempty"`
 }
 
 // listMeta reads what a list row shows from a skill's SKILL.md or an agent's file, in one pass.
-// An unquoted ": " in a description makes the YAML invalid, so a failed decode falls back to the line scanner.
+// An unquoted ": " in a description makes the YAML invalid, so a failed decode falls back to the line scanners.
 // ponytail: one small read per resource on the list; carry it on DiscoveredSkill if lists get slow.
-func listMeta(path string) (manualOnly bool, description string) {
-	fields := []string{"disable-model-invocation", "description"}
+func listMeta(path string) (manualOnly bool, description, metadataVersion string) {
+	fields := []string{"disable-model-invocation", "description", "metadata.version"}
 	m := utils.ParseFrontmatterFields(path, fields)
 	if len(m) == 0 {
-		for _, f := range fields {
+		for _, f := range fields[:2] {
 			m[f] = utils.ParseFrontmatterField(path, f)
 		}
+		m["metadata.version"] = versioncheck.ParseMetadataVersion(path)
 	}
-	return strings.EqualFold(m["disable-model-invocation"], "true"), strings.TrimSpace(m["description"])
+	return strings.EqualFold(m["disable-model-invocation"], "true"), strings.TrimSpace(m["description"]), strings.TrimSpace(m["metadata.version"])
 }
 
 // enrichSkillBranch fills item.Branch from metadata, falling back to
@@ -123,7 +127,7 @@ func (s *Server) handleListSkills(w http.ResponseWriter, r *http.Request) {
 				Targets:    d.Targets,
 				Disabled:   d.Disabled,
 			}
-			item.ManualOnly, item.Description = listMeta(filepath.Join(d.SourcePath, "SKILL.md"))
+			item.ManualOnly, item.Description, item.MetadataVersion = listMeta(filepath.Join(d.SourcePath, "SKILL.md"))
 			enrichSkillLink(&item, source, walk, linkTargets)
 
 			if entry := s.discoveredSkillEntry(d.RelPath, d.RepoRelPath); entry != nil {
@@ -144,7 +148,7 @@ func (s *Server) handleListSkills(w http.ResponseWriter, r *http.Request) {
 
 	// Agents — recursive discovery (supports --into subdirectories)
 	if (kindFilter == "" || kindFilter == "agent") && agentsSource != "" {
-		discovered, _ := resource.AgentKind{}.Discover(agentsSource)
+		discovered, _ := resource.AgentKind{}.DiscoverAll(agentsSource)
 		for _, d := range discovered {
 			item := skillItem{
 				Name:       d.Name,
@@ -157,7 +161,7 @@ func (s *Server) handleListSkills(w http.ResponseWriter, r *http.Request) {
 				Disabled:   d.Disabled,
 				Targets:    d.Targets,
 			}
-			_, item.Description = listMeta(d.SourcePath)
+			_, item.Description, item.MetadataVersion = listMeta(d.SourcePath)
 
 			// Read from centralized agents metadata store
 			agentKey := strings.TrimSuffix(d.RelPath, ".md")
@@ -242,7 +246,7 @@ func (s *Server) handleGetSkill(w http.ResponseWriter, r *http.Request) {
 				Targets:    d.Targets,
 				Disabled:   d.Disabled,
 			}
-			item.ManualOnly, item.Description = listMeta(filepath.Join(d.SourcePath, "SKILL.md"))
+			item.ManualOnly, item.Description, item.MetadataVersion = listMeta(filepath.Join(d.SourcePath, "SKILL.md"))
 			enrichSkillLink(&item, source, walk, make(map[string]string))
 
 			if entry := s.discoveredSkillEntry(d.RelPath, d.RepoRelPath); entry != nil {
@@ -297,15 +301,11 @@ func (s *Server) handleGetSkill(w http.ResponseWriter, r *http.Request) {
 
 	// Fallback: check agents source (recursive — supports --into subdirectories)
 	if kind != "skill" && agentsSource != "" {
-		agentDiscovered, _ := resource.AgentKind{}.Discover(agentsSource)
-		for _, d := range agentDiscovered {
-			if !matchesAgentName(d, name) {
-				continue
-			}
-
+		if d, err := findAgent(agentsSource, name); err == nil {
 			data, readErr := os.ReadFile(d.SourcePath)
 			if readErr != nil {
-				continue
+				writeError(w, http.StatusNotFound, "skill not found: "+name)
+				return
 			}
 
 			item := skillItem{
@@ -319,7 +319,7 @@ func (s *Server) handleGetSkill(w http.ResponseWriter, r *http.Request) {
 				Disabled:   d.Disabled,
 				Targets:    d.Targets,
 			}
-			_, item.Description = listMeta(d.SourcePath)
+			_, item.Description, item.MetadataVersion = listMeta(d.SourcePath)
 
 			agentKey := strings.TrimSuffix(d.RelPath, ".md")
 			if entry := s.agentEntry(agentKey); entry != nil {
