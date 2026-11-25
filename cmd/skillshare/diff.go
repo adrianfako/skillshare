@@ -164,6 +164,9 @@ type copyDiffEntry struct {
 	files  []fileDiffEntry // file-level diffs (nil until populated)
 	srcDir string          // source directory path (for lazy diff)
 	dstDir string          // target directory path (for lazy diff)
+	// copyIgnore holds a copy-mode target's ignore patterns, so the file
+	// diff leaves out source files sync does not copy.
+	copyIgnore []string
 }
 
 // ensureFiles lazily populates file-level diffs on first access.
@@ -175,7 +178,7 @@ func (e *copyDiffEntry) ensureFiles() {
 	if e.srcDir == "" && e.dstDir == "" {
 		return
 	}
-	e.files = diffSkillFiles(e.srcDir, e.dstDir)
+	e.files = diffSkillFiles(e.srcDir, e.dstDir, e.copyIgnore)
 }
 
 // label is the item's name, plus the old name a kept skill stays at.
@@ -209,6 +212,22 @@ func latestMtime(dir string) time.Time {
 		}
 		return nil
 	})
+	return latest
+}
+
+// copiedMtime returns the newest mtime among the files copy mode copies from
+// dir, so a file ignore: keeps out does not count as a source change.
+func copiedMtime(dir string, ignorePatterns []string) time.Time {
+	files, err := sync.CopiedFiles(dir, ignorePatterns)
+	if err != nil {
+		return latestMtime(dir)
+	}
+	var latest time.Time
+	for _, info := range files {
+		if info.ModTime().After(latest) {
+			latest = info.ModTime()
+		}
+	}
 	return latest
 }
 
@@ -615,9 +634,12 @@ func collectTargetDiff(name string, target config.TargetConfig, source, mode str
 	legacyNames := resolution.LegacyNames(mode, sc.Path, manifest)
 	if mode == "copy" {
 		collectCopyDiff(&r, name, sc.Path, source, resolution.Skills, resolution.Naming, sourceSkills, legacyNames, manifest, ignorePatterns, dp)
+		for i := range r.items {
+			r.items[i].copyIgnore = ignorePatterns
+		}
 	} else {
 		// Merge mode (instant)
-		collectMergeDiff(&r, sc.Path, source, sourceSkills, sourceMap, legacyNames)
+		collectMergeDiff(&r, sc.Path, source, sourceSkills, sourceMap, legacyNames, ignorePatterns)
 		dp.add(len(resolution.Skills))
 	}
 
@@ -633,7 +655,7 @@ func collectTargetDiff(name string, target config.TargetConfig, source, mode str
 		r.dstMtime = latestMtime(sc.Path)
 		var srcLatest time.Time
 		for _, resolved := range resolution.Skills {
-			mt := latestMtime(resolved.Skill.SourcePath)
+			mt := copiedMtime(resolved.Skill.SourcePath, ignorePatterns)
 			if mt.After(srcLatest) {
 				srcLatest = mt
 			}
@@ -764,7 +786,7 @@ func collectCopyDiff(r *targetDiffResult, targetName, targetPath, source string,
 	r.synced = len(r.items) == 0
 }
 
-func collectMergeDiff(r *targetDiffResult, targetPath, source string, sourceSkills map[string]bool, sourceMap map[string]string, legacyNames map[string]sync.ResolvedTargetSkill) {
+func collectMergeDiff(r *targetDiffResult, targetPath, source string, sourceSkills map[string]bool, sourceMap map[string]string, legacyNames map[string]sync.ResolvedTargetSkill, ignorePatterns []string) {
 	targetSkills := make(map[string]bool)
 	targetSymlinks := make(map[string]bool)
 	entries, err := os.ReadDir(targetPath)
@@ -800,7 +822,7 @@ func collectMergeDiff(r *targetDiffResult, targetPath, source string, sourceSkil
 			r.items = append(r.items, copyDiffEntry{action: "remove", name: skill, reason: sync.KeptLegacyReason(old), keptAt: old})
 		} else if !targetSymlinks[skill] {
 			reason := "local copy (sync --force to replace)"
-			if manifest.OwnsCopy(skill, dstDir) {
+			if manifest.OwnsCopy(skill, dstDir, ignorePatterns) {
 				reason = sync.CopyToLinkReason
 			}
 			r.items = append(r.items, copyDiffEntry{action: "modify", name: skill, reason: reason, isSync: true, srcDir: srcDir, dstDir: dstDir})

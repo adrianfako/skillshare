@@ -102,7 +102,7 @@ describe('MCP server dialog', () => {
     const user = userEvent.setup();
     const copyFrom = [
       {
-        root: '/work/web',
+        roots: ['/work/web'],
         name: 'docs',
         server: { command: 'npx', args: ['docs'], env: { DOCS_TOKEN: { fromEnv: 'DOCS_TOKEN' } } },
       },
@@ -244,6 +244,21 @@ describe('MCP server dialog', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(mcpApi.save).toHaveBeenCalledWith({ name: 'docs', server, replace: true }),
+    );
+  });
+
+  it('saves a server that loads only in the projects that use it', async () => {
+    const user = userEvent.setup();
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'] };
+    renderDialog({ initial: { name: 'docs', server } });
+    await user.click(screen.getByRole('radio', { name: /Only projects that turn it on/ }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(mcpApi.save).toHaveBeenCalledWith({
+        name: 'docs',
+        server: { ...server, global: false },
+        replace: true,
+      }),
     );
   });
 

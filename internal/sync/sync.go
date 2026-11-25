@@ -42,7 +42,8 @@ type DiscoveredSkill struct {
 // isSkillIgnored checks whether a skill inside a tracked repo should be
 // skipped based on the repo's .skillignore matcher.
 // relPath and repoRelPath are slash paths relative to the source root, and
-// ignoreMatchers is keyed by repo root in the same form.
+// ignoreMatchers is keyed by repo root in the same form. The skill is matched
+// as a directory, so a directory-only rule such as "name/" applies to it.
 func isSkillIgnored(relPath, repoRelPath string, ignoreMatchers map[string]*skillignore.Matcher) bool {
 	if relPath == repoRelPath {
 		return false
@@ -51,7 +52,7 @@ func isSkillIgnored(relPath, repoRelPath string, ignoreMatchers map[string]*skil
 	if !ok {
 		return false
 	}
-	return m.Match(strings.TrimPrefix(relPath, repoRelPath+"/"), false)
+	return m.Match(strings.TrimPrefix(relPath, repoRelPath+"/"), true)
 }
 
 // walkOptions returns the optional traversal policy passed to a Discover
@@ -379,6 +380,11 @@ func copyDirectory(src, dst string) error {
 type copyDirectoryOpts struct {
 	SkipGit bool // skip .git directories
 	Ignore  *skillignore.Matcher
+
+	// relPrefix is the skill-root-relative path of src when the walk re-roots
+	// at a dereferenced directory symlink, so ignore rules match the same
+	// paths as the checksum walk.
+	relPrefix string
 }
 
 // copyDirectorySkipGit copies a directory recursively, skipping .git directories.
@@ -409,9 +415,15 @@ func copyDirectoryWithState(src, dst string, active map[string]bool, opts *copyD
 
 	skipGit := opts != nil && opts.SkipGit
 	var ignore *skillignore.Matcher
+	relPrefix := ""
 	if opts != nil {
 		ignore = opts.Ignore
+		relPrefix = opts.relPrefix
 	}
+
+	// Ignored directories entered only because a later negation may re-include
+	// something inside them. Each is created when a kept entry needs it.
+	pending := map[string]os.FileMode{}
 
 	// Walk the operation root itself as a directory, not as a second link hop.
 	src = resolvedSrc
@@ -424,17 +436,37 @@ func copyDirectoryWithState(src, dst string, active map[string]bool, opts *copyD
 		relPath = strings.ReplaceAll(relPath, "\\", "/")
 		dstPath := filepath.Join(dst, relPath)
 
+		// Ignore rules match paths relative to the skill root, like the
+		// checksum walk, even below a dereferenced directory symlink.
+		ignoreRel := relPath
+		if ignoreRel == "." {
+			ignoreRel = ""
+		}
+		if relPrefix != "" {
+			ignoreRel = strings.TrimSuffix(relPrefix+"/"+ignoreRel, "/")
+		}
+
 		if info.IsDir() {
 			if skipGit && info.Name() == ".git" {
 				return filepath.SkipDir
 			}
-			if relPath != "." && isFileIgnored(ignore, relPath, true) {
-				return filepath.SkipDir
+			if ignoreRel != "" && isFileIgnored(ignore, ignoreRel, true) {
+				if ignore.CanSkipDir(ignoreRel) {
+					return filepath.SkipDir
+				}
+				pending[dstPath] = info.Mode()
+				return nil
+			}
+			if err := createPendingDirs(filepath.Dir(dstPath), pending); err != nil {
+				return err
 			}
 			return os.MkdirAll(dstPath, info.Mode())
 		}
-		if isFileIgnored(ignore, relPath, false) {
+		if isFileIgnored(ignore, ignoreRel, false) {
 			return nil
+		}
+		if err := createPendingDirs(filepath.Dir(dstPath), pending); err != nil {
+			return err
 		}
 
 		// In copy mode we need real files/dirs, so directory symlinks are
@@ -449,12 +481,31 @@ func copyDirectoryWithState(src, dst string, active map[string]bool, opts *copyD
 				if resolveErr != nil {
 					return fmt.Errorf("failed to resolve symlink directory %s: %w", path, resolveErr)
 				}
-				return copyDirectoryWithState(resolvedDir, dstPath, active, opts)
+				subOpts := &copyDirectoryOpts{relPrefix: ignoreRel}
+				if opts != nil {
+					*subOpts = *opts
+					subOpts.relPrefix = ignoreRel
+				}
+				return copyDirectoryWithState(resolvedDir, dstPath, active, subOpts)
 			}
 		}
 
 		return copyFile(path, dstPath)
 	})
+}
+
+// createPendingDirs creates dir when the copy walk deferred it, after its
+// deferred parents, with the mode of the matching source directory.
+func createPendingDirs(dir string, pending map[string]os.FileMode) error {
+	mode, ok := pending[dir]
+	if !ok {
+		return nil
+	}
+	delete(pending, dir)
+	if err := createPendingDirs(filepath.Dir(dir), pending); err != nil {
+		return err
+	}
+	return os.MkdirAll(dir, mode)
 }
 
 // copyFile copies a single file
@@ -576,6 +627,20 @@ func SyncTargetMerge(name string, target config.TargetConfig, sourcePath string,
 // avoiding redundant filesystem walks when syncing multiple targets.
 // sourcePath is the skills source directory, used to detect symlink-mode targets.
 func SyncTargetMergeWithSkills(name string, target config.TargetConfig, allSkills []DiscoveredSkill, sourcePath string, dryRun, force bool, projectRoot string) (*MergeResult, error) {
+	return SyncTargetMergeWithSkillsOptions(name, target, allSkills, sourcePath, dryRun, force, projectRoot, MergeOptions{
+		IgnorePatterns: DefaultFileIgnorePatterns(),
+	})
+}
+
+// MergeOptions controls merge-mode sync behavior.
+type MergeOptions struct {
+	// IgnorePatterns are the effective copy-mode patterns, used to recognize
+	// an unedited copy that copy mode left behind.
+	IgnorePatterns []string
+}
+
+// SyncTargetMergeWithSkillsOptions is SyncTargetMergeWithSkills with options.
+func SyncTargetMergeWithSkillsOptions(name string, target config.TargetConfig, allSkills []DiscoveredSkill, sourcePath string, dryRun, force bool, projectRoot string, opts MergeOptions) (*MergeResult, error) {
 	sc := target.SkillsConfig()
 	result := &MergeResult{}
 	if !sc.IsEnabled() {
@@ -666,7 +731,7 @@ func SyncTargetMergeWithSkills(name string, target config.TargetConfig, allSkill
 				result.Updated = append(result.Updated, activeName)
 			} else {
 				// It's a real directory
-				if force || manifest.OwnsCopy(activeName, targetSkillPath) {
+				if force || manifest.OwnsCopy(activeName, targetSkillPath, opts.IgnorePatterns) {
 					// Force, or an unedited copy left by copy mode: replace it with a symlink
 					if dryRun {
 						if !quietDryRun {

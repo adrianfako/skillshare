@@ -222,7 +222,7 @@ Codex trust
 
 書き込むのは `trusted_hash` だけで、追加のみです。Codex で無効にした hook は無効のまま報告されます。`enabled`、`config.toml` のその他の部分、Skillshare が所有しない hooks には触れません。hook が移動または削除されると、古いエントリは `config.toml` に残ります。このエントリは、その位置で event、matcher、handler が同じ hook にしか一致しないため、別の hook を信頼することはありません。
 
-`codex` が `PATH` にない場合や Codex が失敗した場合も hook ファイルは書き込まれ、コマンドは "hook files were written, but Codex trust was not recorded" で失敗します。Codex home が複数ある場合、Codex が一覧できない home や書き込みに失敗した home があっても他の home の記録は続行され、エラーには記録できた home とできなかった home が示されます。`--trust` なしの `hooks sync` は Codex を起動せず、信頼も変更しません。`--trust` はグローバルモードのみで、`sync hooks`、`hooks list`、プロジェクトモードでは拒否されます。Dashboard の Hooks ページ（global scope）にも同じ操作があり、信頼が必要な hooks を command とともに一覧表示し、ダイアログで確認した後にのみ信頼を記録します。
+`codex` が `PATH` にない場合や Codex が失敗した場合も hook ファイルは書き込まれ、コマンドは "hook files were written, but Codex trust was not recorded" で失敗します。Codex home が複数ある場合、Codex が一覧できない home や書き込みに失敗した home があっても他の home の記録は続行され、エラーには記録できた home とできなかった home が示されます。`--trust` なしの `hooks sync` は Codex を起動せず、信頼も変更しません。`--trust` はグローバルモードのみで、`sync hooks`、`hooks list`、プロジェクトモードでは拒否されます。`hooks.projects` がプロジェクトに書き込む hook は対象外なので、Codex の `/hooks` で信頼してください。Dashboard の Hooks ページ（global scope）にも同じ操作があり、信頼が必要な hooks を command とともに一覧表示し、ダイアログで確認した後にのみ信頼を記録します。
 
 ## Git hooks {#git-hooks}
 
@@ -270,7 +270,7 @@ plan は実際の `add`、`update`、`remove`、`unchanged` を維持し、実�
 
 ## プロジェクト、競合と復元
 
-global 設定の `hooks.projects` は絶対プロジェクトパスを同じ Entry 形式の `entries` に対応づけます。**Projects → Hooks** で管理できます。独自の `.skillshare/config.yaml` があるプロジェクトは project scope で管理します。プロジェクト同期はそのルートだけを適用します。
+global 設定の `hooks.projects` は絶対プロジェクトパスを同じ Entry 形式の `entries` に対応づけます。**Projects → Hooks** で管理できます。そこで **ここでの hook の管理をやめる** を選ぶとルートが `hooks.projects` から外れ、次の同期で Skillshare がその下に書いた hook が削除されます。独自の `.skillshare/config.yaml` があるプロジェクトは project scope で管理します。プロジェクト同期はそのルートだけを適用します。
 
 無関係な設定と所有していない hooks は保持します。内容の一致だけでは所有を判断しません。所有出力が外部編集されると、無効化、削除、復元も競合になります。明示的な置換は選択 entry のみが対象です。共有ファイルでは、plan の各行に entry が追加（`+`）、更新（`~`）、削除（`−`）する event を表示し、JSON plan の `events` にも含まれます。`update` は entry がそのファイルに登録を残すこと、`remove` はファイルから完全に外れることを意味します。編集はファイルの書式（コンパクトまたはインデント）を保ち、Skillshare が追加した `hooks` キーは最後の hook が外れると削除します。Skillshare が作成したファイルは、ほかに何も残っていなければ、作成して空になったフォルダーとともに削除し、プレビューではファイルの削除として表示します。以前からあったファイルやフォルダー、あなたが追加した内容は残ります。
 
