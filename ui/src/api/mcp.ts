@@ -34,7 +34,16 @@ export interface MCPSettings {
 export interface MCPProject extends MCPSettings {
   /** Shared servers (`global: false` in mcp.servers) this root loads. */
   use?: string[];
+  /** What this root changes in a shared server it uses, keyed by the server's name. */
+  overrides?: Record<string, MCPOverride>;
   servers?: Record<string, MCPServer>;
+}
+/** A root's change to a shared server. targets and tools replace the server's; piOptions and options are merged into it key by key. */
+export interface MCPOverride {
+  targets?: string[];
+  tools?: MCPToolPolicy;
+  piOptions?: Record<string, unknown>;
+  options?: Record<string, Record<string, unknown>>;
 }
 /** Which of a server's tools reach the model, written once and translated per Agent. Names may use `*`. */
 export interface MCPToolPolicy {
@@ -70,6 +79,8 @@ export interface MCPMutation {
   settings?: MCPSettings;
   /** With `project` and `name`: turns that shared server on or off for the root. */
   using?: boolean;
+  /** With `project` and `name`: what the root changes in that shared server, replacing what it had; `{}` clears it. */
+  override?: MCPOverride;
   name?: string;
   server?: MCPServer;
   remove?: boolean;
@@ -179,6 +190,13 @@ export const mcpApi = {
     http.post<MCPResult>('/mcp', {
       mutation,
       revision: (await http.post<MCPPlan>('/mcp/preview', { mutation })).revision,
+      sync: false,
+    }),
+  /** Save several changes to the source together, under one preview's revision; none is saved if one is refused. */
+  saveBatch: async (mutations: MCPMutation[]) =>
+    http.post<MCPResult>('/mcp', {
+      mutations,
+      revision: (await http.post<MCPPlan>('/mcp/preview', { mutations })).revision,
       sync: false,
     }),
   /** One server as each of its targets' config files would hold it. Reads configuration only; no server is executed and no file is written. */

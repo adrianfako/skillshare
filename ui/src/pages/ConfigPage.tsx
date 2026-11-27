@@ -32,7 +32,7 @@ import { useToast } from '../components/Toast';
 import AssistantPanel from '../components/config/AssistantPanel';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DialogShell from '../components/DialogShell';
-import { api } from '../api/client';
+import { api, isConnectionLost } from '../api/client';
 import { queryKeys, staleTimes } from '../lib/queryKeys';
 import { useAppContext } from '../context/AppContext';
 import { handTheme } from '../lib/codemirror-theme';
@@ -655,7 +655,12 @@ function ExtensionsSection({ isProjectMode }: { isProjectMode: boolean }) {
       toast(t('config.extensions.toast.installed', { name }, `Installed ${name}`), 'success');
       void invalidate(queryClient, 'extensionsChanged');
     } catch (err: any) {
-      toast(err.message, 'error');
+      if (isConnectionLost(err)) {
+        toast(t('common.connectionLost'), 'error');
+        void invalidate(queryClient, 'extensionsChanged');
+      } else {
+        toast(err.message, 'error');
+      }
     } finally {
       setInstalling((prev) => {
         const next = new Set(prev);
@@ -720,7 +725,7 @@ function ExtensionsSection({ isProjectMode }: { isProjectMode: boolean }) {
       {isPending ? (
         <PageSkeleton />
       ) : (
-        <div className="flex max-w-[860px] flex-col gap-8">
+        <div className="flex flex-col gap-8">
           <section>
             <div className="ss-sec">
               <h2>{t('config.extensions.installedHeading', {}, 'Installed')}</h2>

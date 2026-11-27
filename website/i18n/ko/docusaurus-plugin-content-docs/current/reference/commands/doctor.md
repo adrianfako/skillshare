@@ -196,7 +196,7 @@ OpenCode를 다른 환경(예: 데스크톱 런처)에서 실행한다면 그쪽
 ### Version
 
 - CLI 버전
-- skillshare skill 버전 (더 새로운 skill이 공개되면 경고, `skillshare upgrade --skill`)
+- skillshare skill 버전 (더 새로운 skill이 공개되면 경고, `skillshare upgrade --skill`; `.skillignore`가 비활성화한 경우에도 경고, `skillshare enable skillshare`)
 - 사용 가능한 업데이트 확인
 
 ### Skill Integrity
@@ -362,6 +362,8 @@ Next
 ```
 
 `nix profile`로 설치했다면 Next 줄에 `nix profile upgrade skillshare`가 표시됩니다. NixOS나 Home Manager가 skillshare를 제공하는 경우에는 Update 줄에 Nix 설정을 업데이트하고 다시 빌드하라는 안내가 붙고, Next 줄은 표시되지 않습니다.
+
+uv, pipx 또는 pip으로 설치했다면 Next 줄에 `uv tool upgrade skillshare-cli`처럼 해당 설치 도구의 명령이 표시됩니다.
 
 ## JSON 출력
 

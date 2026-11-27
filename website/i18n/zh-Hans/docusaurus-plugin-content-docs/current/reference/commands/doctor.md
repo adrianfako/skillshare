@@ -200,7 +200,7 @@ opencode skips ~/.claude/skills: OPENCODE_DISABLE_CLAUDE_CODE_SKILLS is set in t
 ### Version
 
 - CLI 版本
-- skillshare skill 版本；有较新的 skill 发布时会给出警告（`skillshare upgrade --skill`）
+- skillshare skill 版本；有较新的 skill 发布时会给出警告（`skillshare upgrade --skill`），被 `.skillignore` 禁用时也会给出警告（`skillshare enable skillshare`）
 - 检查是否有可用更新
 
 ### Skill Integrity
@@ -366,6 +366,8 @@ Next
 ```
 
 通过 `nix profile` 安装时，Next 行显示 `nix profile upgrade skillshare`。由 NixOS 或 Home Manager 提供 skillshare 时，Update 行会提示更新 Nix 配置并重新构建，不显示对应的 Next 行。
+
+通过 uv、pipx 或 pip 安装时，Next 行显示对应安装工具的命令，例如 `uv tool upgrade skillshare-cli`。
 
 ## JSON 输出
 

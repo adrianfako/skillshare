@@ -33,7 +33,7 @@ vi.mock('../CodeEditor', () => ({
 }));
 vi.mock('../../api/mcp', async (load) => ({
   ...(await load<typeof import('../../api/mcp')>()),
-  mcpApi: { save: vi.fn(), render: vi.fn() },
+  mcpApi: { save: vi.fn(), saveBatch: vi.fn(), render: vi.fn() },
 }));
 vi.mock('../../api/mcpCheck', () => ({ mcpCheckApi: { probe: vi.fn() } }));
 
@@ -251,7 +251,7 @@ describe('MCP server dialog', () => {
     const user = userEvent.setup();
     const server = { url: 'https://docs.example/mcp', targets: ['claude'] };
     renderDialog({ initial: { name: 'docs', server } });
-    await user.click(screen.getByRole('radio', { name: /Only projects that turn it on/ }));
+    await user.click(screen.getByRole('button', { name: 'Chosen projects' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(mcpApi.save).toHaveBeenCalledWith({
@@ -260,6 +260,104 @@ describe('MCP server dialog', () => {
         replace: true,
       }),
     );
+  });
+
+  it('saves the projects ticked for a shared server in the same save as the server', async () => {
+    const user = userEvent.setup();
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'], global: false };
+    renderDialog({
+      initial: { name: 'docs', server },
+      users: ['/work/api'],
+      roots: ['/work/api', '/work/web'],
+    });
+    await user.click(screen.getByRole('checkbox', { name: '/work/api' }));
+    await user.click(screen.getByRole('checkbox', { name: '/work/web' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(mcpApi.saveBatch).toHaveBeenCalledWith([
+        { name: 'docs', server, replace: true },
+        { project: '/work/api', name: 'docs', using: false },
+        { project: '/work/web', name: 'docs', using: true },
+      ]),
+    );
+    expect(mcpApi.save).not.toHaveBeenCalled();
+  });
+
+  it("waits to open a project's MCP tab until the dialog's edits are saved", async () => {
+    const user = userEvent.setup();
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'], global: false };
+    renderDialog({
+      initial: { name: 'docs', server },
+      users: ['/work/api'],
+      roots: ['/work/api'],
+      onOpenProject: vi.fn(),
+    });
+    expect(screen.getByRole('button', { name: "Open /work/api's MCP tab" })).toBeEnabled();
+    await user.type(screen.getByDisplayValue('https://docs.example/mcp'), '/v2');
+    expect(screen.getByRole('button', { name: "Open /work/api's MCP tab" })).toBeDisabled();
+  });
+
+  it("waits to open a project's MCP tab while the page has unsaved ticks", () => {
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'], global: false };
+    renderDialog({
+      initial: { name: 'docs', server },
+      users: ['/work/api'],
+      roots: ['/work/api'],
+      onOpenProject: vi.fn(),
+      othersUnsaved: true,
+    });
+    expect(screen.getByRole('button', { name: "Open /work/api's MCP tab" })).toBeDisabled();
+  });
+
+  it('keeps an added folder listed after Loads in is switched away and back', async () => {
+    const user = userEvent.setup();
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'], global: false };
+    renderDialog({
+      initial: { name: 'docs', server },
+      users: [],
+      roots: ['/work/api'],
+    });
+    await user.click(screen.getByRole('button', { name: /Add folder/ }));
+    await user.type(screen.getByLabelText('Project folder'), '/work/new{Enter}');
+    await user.click(screen.getByRole('button', { name: 'Every project' }));
+    await user.click(screen.getByRole('button', { name: 'Chosen projects' }));
+    expect(screen.getByRole('checkbox', { name: '/work/new' })).toBeChecked();
+  });
+
+  it('tells the page which projects use the server once the ticks are saved', async () => {
+    const user = userEvent.setup();
+    const saved = vi.fn();
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'], global: false };
+    renderDialog({
+      initial: { name: 'docs', server },
+      users: ['/work/api'],
+      roots: ['/work/api', '/work/web'],
+      onSaved: saved,
+    });
+    await user.click(screen.getByRole('checkbox', { name: '/work/web' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(saved).toHaveBeenCalledWith(server, ['/work/api', '/work/web']));
+  });
+
+  it('sends no project ticks once the server loads in every project again', async () => {
+    const user = userEvent.setup();
+    const server = { url: 'https://docs.example/mcp', targets: ['claude'], global: false };
+    renderDialog({
+      initial: { name: 'docs', server },
+      users: ['/work/api'],
+      roots: ['/work/api', '/work/web'],
+    });
+    await user.click(screen.getByRole('checkbox', { name: '/work/web' }));
+    await user.click(screen.getByRole('button', { name: 'Every project' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(mcpApi.save).toHaveBeenCalledWith({
+        name: 'docs',
+        server: { ...server, global: true },
+        replace: true,
+      }),
+    );
+    expect(mcpApi.saveBatch).not.toHaveBeenCalled();
   });
 
   it('edits a header, keeping a secret as a reference to the environment', async () => {

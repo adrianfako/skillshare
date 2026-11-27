@@ -10,7 +10,10 @@ export const queryKeys = {
     detailOfKind: (name: string, kind?: string) => ['skills', name, kind] as const,
     file: (name: string, path: string) => ['skill-file', name, path] as const,
     localChanges: (relPath: string) => ['skill-local-changes', relPath] as const,
+    upstreamChanges: (relPath: string) => ['skill-upstream-changes', relPath] as const,
   },
+
+  repoUpstreamChanges: (name: string) => ['repo-upstream-changes', name] as const,
 
   /** A dry-run of the move dialog: what a move to `dest` would do. */
   movePreview: (names: string[], dest: string) => ['move-preview', names, dest] as const,
@@ -65,6 +68,8 @@ export const queryKeys = {
   missingConfigEntries: ['missing-config-entries'] as const,
   // Last update check, kept client-side (see UpdatePage) and shared by the Updates tab and its count.
   updateCheck: ['update-check'] as const,
+  // The default branch of each remote a check reached, kept client-side (see UpdatePage).
+  defaultBranches: ['default-branches'] as const,
   syncMatrix: (target?: string) => ['sync-matrix', target ?? '__all'] as const,
   // Prefix: every target's matrix, where `syncMatrix()` is only the all-targets one.
   syncMatrixAll: ['sync-matrix'] as const,
@@ -102,6 +107,8 @@ export const queryKeys = {
     content: (name: string, path: string) => ['target-files', name, 'content', path] as const,
   },
   mcp: ['mcp'] as const,
+  // Under `mcp`, so every MCP change refreshes it too.
+  mcpCosts: ['mcp', 'costs'] as const,
   mcpRender: (mutation: string) => ['mcp', 'render', mutation] as const,
   mcpRemovePreview: (project: string | undefined, name: string) =>
     ['mcp-remove-preview', project, name] as const,
@@ -132,7 +139,8 @@ export const queryKeys = {
   pluginFiles: (name: string) => ['plugin-files', name] as const,
   pluginFile: (name: string, path: string) => ['plugin-file', name, path] as const,
   pluginDiscover: (...parts: unknown[]) => ['plugin-discover', ...parts] as const,
-  // Under `plugins`, so invalidating that key refreshes both.
+  // Under `plugins`, so writes refresh inventory and update checks together.
+  pluginCheck: ['plugins', 'check'] as const,
   pluginPackages: ['plugins', 'packages'] as const,
   hubConfig: ['hub-config'] as const,
   // Everything under `hub`, so invalidating `hub.drafts` also refreshes each draft.

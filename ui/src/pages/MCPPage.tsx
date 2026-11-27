@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   ChevronDown,
   Download,
   Eye,
+  Globe,
   Pencil,
   Plug,
   Plus,
   PowerOff,
+  ToggleRight,
   Trash2,
   X,
 } from 'lucide-react';
@@ -29,6 +31,7 @@ import PageHeader from '../components/PageHeader';
 import SourcePathButton from '../components/SourcePathButton';
 import { PageSkeleton } from '../components/Skeleton';
 import { RailGroup, RailLayout, RailRow, RailSection } from '../components/StatusRail';
+import MCPContextCard from '../components/context/MCPContextCard';
 import { SkillContextMenu, type ContextMenuItem } from '../components/TargetMenu';
 import { useToast } from '../components/Toast';
 import MCPDefaults from '../components/mcp/MCPDefaults';
@@ -40,11 +43,14 @@ import { problemsByServer, useMCPCheck } from '../components/mcp/useMCPCheck';
 import { projectUrl } from '../components/projects/projectView';
 import MCPSyncBox, { MCPRailActions } from '../components/mcp/MCPSyncBox';
 import MCPServerList from '../components/mcp/MCPServerList';
+import ProjectSectionHead from '../components/mcp/ProjectSectionHead';
 import MCPPreview, { type MCPResolve } from '../components/mcp/MCPPreview';
 import { MCPConfigDialog } from '../components/mcp/MCPConfigView';
+import MCPOverrideDialog from '../components/mcp/MCPOverrideDialog';
 import MCPRemoveDialog from '../components/mcp/MCPRemoveDialog';
 import MCPRestoreDialog from '../components/mcp/MCPRestoreDialog';
 import MCPServerDialog from '../components/mcp/MCPServerDialog';
+import SharedStatus, { type SharedLookup } from '../components/mcp/SharedStatus';
 import { isServeCommand, type AddMode } from '../components/mcp/mcpServerDraft';
 import {
   buildMatrix,
@@ -55,9 +61,11 @@ import {
   isResolvable,
   mcpOrder,
   projectOf,
+  sharedInRoot,
   sharedTargets,
   sharedUsers,
   targetLabel,
+  usingChanges,
   writes,
   type MCPChange,
 } from '../components/mcp/mcpView';
@@ -73,10 +81,11 @@ const inGlobalScope = (change: MCPChange) => !change.root;
 function mcpPageModel(data: MCPList | undefined, order: readonly string[]) {
   const servers = data?.source.servers ?? {};
   const defaults = data?.source.targets ?? [];
-  // A shared server that names no targets follows the projects that use it, as sync does.
+  // A shared server goes where each project that uses it sends it, as sync does.
   const targetsOf = (name: string) =>
-    servers[name]?.targets ??
-    (isShared(servers[name]) && data ? sharedTargets(data.source, name) : defaults);
+    isShared(servers[name]) && data
+      ? sharedTargets(data.source, name)
+      : (servers[name]?.targets ?? defaults);
   const changes = data?.plan?.changes ?? [];
   // mcp.projects puts a server of the same name into other folders; this list is the global
   // files only. A project's off switch for Claude Code lands in a global path, so ask the
@@ -237,6 +246,10 @@ interface ContentProps {
   onShowAll: () => void;
   busy: boolean;
   onToggle: (name: string, target: string, on: boolean) => void;
+  onProjects: (name: string, picked: string[]) => void;
+  onOverride: (name: string, root: string) => void;
+  onOpenProject: (root: string) => void;
+  onUnsavedChange: (unsaved: boolean) => void;
   onMenu: (e: React.MouseEvent<HTMLButtonElement>, name: string) => void;
   onImport: (request: ImportRequest) => void;
   onAdd: () => void;
@@ -256,6 +269,10 @@ function MCPContent({
   onShowAll,
   busy,
   onToggle,
+  onProjects,
+  onOverride,
+  onOpenProject,
+  onUnsavedChange,
   onMenu,
   onImport,
   onAdd,
@@ -288,6 +305,26 @@ function MCPContent({
       return t('mcp.conflict.changed', params);
     return `${params.target} · ${c.name}: ${describeMessage(t, c.message)}`;
   };
+  // A project's own servers all load there, so only the global page has chosen-project ones.
+  const chosenRows = isProjectMode ? [] : rows.filter((row) => isShared(row.server));
+  const globalRows = rows.filter((row) => !isShared(row.server));
+  const serverList = (shown: typeof rows) => (
+    <MCPServerList
+      rows={shown}
+      targets={order.filter((x) => matrixTargets.has(x))}
+      targetsOf={targetsOf}
+      onToggle={onToggle}
+      onMenu={onMenu}
+      disabled={busy}
+      problems={problemsByServer(check.report)}
+      users={users}
+      roots={roots}
+      onProjects={onProjects}
+      shared={{ ...sharedLookup(data.source), onOverride }}
+      onOpenProject={onOpenProject}
+      onUnsavedChange={onUnsavedChange}
+    />
+  );
   const actions = {
     check: Object.keys(servers).length > 0 ? check : undefined,
     onBackups: data.backups.length > 0 ? onBackups : undefined,
@@ -307,6 +344,7 @@ function MCPContent({
             )
           )}
 
+          <MCPContextCard />
           <MCPFilesRail data={data} model={model} allFiles={allFiles} onShowAll={onShowAll} />
         </>
       }
@@ -380,7 +418,7 @@ function MCPContent({
         entries={data.unmanaged.filter((u) => !u.project)}
         onImport={(from) => onImport({ from })}
       />
-      {(rows.length > 0 || isProjectMode) && (
+      {chosenRows.length === 0 && (rows.length > 0 || isProjectMode) && (
         <div className="ss-sec !mb-0 !items-center">
           <h2>{t('mcp.serverList')}</h2>
           <span className="ss-cnt">{rows.length}</span>
@@ -393,17 +431,33 @@ function MCPContent({
           )}
         </div>
       )}
-      {rows.length > 0 ? (
-        <MCPServerList
-          rows={rows}
-          targets={order.filter((x) => matrixTargets.has(x))}
-          targetsOf={targetsOf}
-          onToggle={onToggle}
-          onMenu={onMenu}
-          disabled={busy}
-          problems={problemsByServer(check.report)}
-          users={users}
-        />
+      {chosenRows.length > 0 ? (
+        // Split only once a server loads in chosen projects alone; until then every server
+        // is global, and one list keeps the page free of project terms for people without any.
+        <>
+          {globalRows.length > 0 && (
+            <section className="flex flex-col">
+              <ProjectSectionHead
+                icon={<Globe size={16} />}
+                title={t('mcp.shared.sectionGlobal')}
+                count={globalRows.length}
+                hint={t('mcp.shared.everywhereHint')}
+              />
+              {serverList(globalRows)}
+            </section>
+          )}
+          <section className={`flex flex-col ${globalRows.length > 0 ? 'mt-2' : ''}`}>
+            <ProjectSectionHead
+              icon={<ToggleRight size={16} />}
+              title={t('mcp.shared.sectionChosen')}
+              count={chosenRows.length}
+              hint={t('mcp.shared.chosenHint')}
+            />
+            {serverList(chosenRows)}
+          </section>
+        </>
+      ) : rows.length > 0 ? (
+        serverList(rows)
       ) : (
         <EmptyState
           icon={Plug}
@@ -428,6 +482,15 @@ function MCPContent({
   );
 }
 
+/** How each project loads the shared servers, from the MCP page's config. */
+function sharedLookup(source: MCPList['source']): SharedLookup {
+  return {
+    loadedIn: (name, root) => sharedInRoot(source, name, root),
+    overrideOf: (name, root) => source.projects?.[root]?.overrides?.[name],
+    replaced: (name, root) => Boolean(source.projects?.[root]?.servers?.[name]),
+  };
+}
+
 function MCPEditDialog({
   data,
   model,
@@ -435,6 +498,8 @@ function MCPEditDialog({
   addingOff,
   addMode,
   onMode,
+  onOpenProject,
+  othersUnsaved,
   onClose,
   onSaved,
 }: {
@@ -444,13 +509,16 @@ function MCPEditDialog({
   addingOff: boolean;
   addMode: AddMode;
   onMode: (mode: AddMode) => void;
+  onOpenProject: (root: string) => void;
+  othersUnsaved: boolean;
   onClose: () => void;
-  onSaved: (server?: MCPServer) => void;
+  onSaved: (server?: MCPServer, users?: string[]) => void;
 }) {
   const { servers, defaults, files, users } = model;
   const server = editing ? servers[editing] : undefined;
   // skillshare mcp serve has its own tab; an edit of such a server opens it again.
   const serve = editing === '' ? addMode === 'serve' : isServeCommand(server);
+  const shared = sharedLookup(data.source);
   return editing === '' && addMode === 'paste' ? (
     <MCPImportDialog
       source="paste"
@@ -472,6 +540,16 @@ function MCPEditDialog({
       existingNames={Object.keys(servers)}
       availableTargets={files}
       users={editing ? users[editing] : undefined}
+      roots={model.roots}
+      projectStatus={
+        editing
+          ? (root, using) => (
+              <SharedStatus name={editing} root={root} using={using} shared={shared} />
+            )
+          : undefined
+      }
+      onOpenProject={editing ? onOpenProject : undefined}
+      othersUnsaved={othersUnsaved}
       onMode={editing === '' ? onMode : undefined}
       onClose={onClose}
       onSaved={onSaved}
@@ -620,6 +698,10 @@ export default function MCPPage() {
   const { toast } = useToast();
   const cache = useQueryClient();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const openProject = (root: string) => void navigate(projectUrl(root, 'mcp'));
+  // Project ticks not saved in an expanded row; the Edit dialog's project links wait for them too.
+  const [rowsUnsaved, setRowsUnsaved] = useState(false);
   const { data, error, isPending } = useMcpQuery();
   const { isProjectMode } = useAppContext();
   const [addingOff, setAddingOff] = useState(false); // the new entry is a switch, not a server
@@ -629,6 +711,7 @@ export default function MCPPage() {
   const [importing, setImporting] = useState<ImportRequest | null>(null);
   const [removing, setRemoving] = useState('');
   const [viewing, setViewing] = useState('');
+  const [overriding, setOverriding] = useState<{ name: string; root: string } | null>(null);
   const [backupsOpen, setBackupsOpen] = useState(false);
   const [replace, setReplace] = useState<{ plan: MCPPlan; mutation: MCPMutation } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -666,6 +749,19 @@ export default function MCPPage() {
   const toggle = (name: string, target: string, on: boolean) => {
     setBusy(true);
     void toggleTarget(name, target, on).finally(() => setBusy(false));
+  };
+
+  // Every project ticked or cleared at once is one save, so a sync never finds half of them.
+  const saveProjects = async (name: string, picked: string[]) => {
+    setBusy(true);
+    try {
+      await mcpApi.saveBatch(usingChanges(name, model.users[name] ?? [], picked));
+    } catch (e) {
+      toast(describeError(t, (e as Error).message), 'error');
+    } finally {
+      setBusy(false);
+    }
+    refresh();
   };
 
   const saveSettings = async (settings: MCPSettings) => {
@@ -776,6 +872,10 @@ export default function MCPPage() {
               onShowAll={() => setAllFiles(!allFiles)}
               busy={busy}
               onToggle={(n, x, on) => toggle(n, x, on)}
+              onProjects={(n, picked) => void saveProjects(n, picked)}
+              onOverride={(name, root) => setOverriding({ name, root })}
+              onOpenProject={openProject}
+              onUnsavedChange={setRowsUnsaved}
               onMenu={openMenu}
               onImport={setImporting}
               onAdd={() => {
@@ -804,11 +904,12 @@ export default function MCPPage() {
               addingOff={addingOff}
               addMode={addMode}
               onMode={setAddMode}
+              onOpenProject={openProject}
+              othersUnsaved={rowsUnsaved}
               onClose={() => setEditing(null)}
-              onSaved={(server) => {
+              onSaved={(server, users) => {
                 // An edit of a shared server reaches every project that uses it.
-                const count =
-                  editing && server?.global === false ? (model.users[editing]?.length ?? 0) : 0;
+                const count = editing && server?.global === false ? (users?.length ?? 0) : 0;
                 done(
                   count > 0
                     ? t(plural('mcp.shared.saved', count), { count })
@@ -833,12 +934,25 @@ export default function MCPPage() {
             <MCPConfigDialog
               mutation={{
                 name: viewing,
-                server: {
-                  ...servers[viewing],
-                  targets: order.filter((x) => targetsOf(viewing).includes(x)),
-                },
+                // A shared server goes as saved: each project that uses it decides its targets.
+                server: isShared(servers[viewing])
+                  ? servers[viewing]
+                  : {
+                      ...servers[viewing],
+                      targets: order.filter((x) => targetsOf(viewing).includes(x)),
+                    },
               }}
               onClose={() => setViewing('')}
+            />
+          )}
+          {overriding && data && (
+            <MCPOverrideDialog
+              name={overriding.name}
+              root={overriding.root}
+              source={data.source}
+              paths={data.projectPaths[overriding.root] ?? {}}
+              onClose={() => setOverriding(null)}
+              onSaved={refresh}
             />
           )}
           {removing && (

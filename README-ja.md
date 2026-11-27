@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **最新バージョン**：v0.31.0 — MCP サーバーを必要なプロジェクトだけで共有できます。`mcp.servers` のサーバーに `global: false` を設定し、各プロジェクトの root の `use` に並べれば、一度の編集が次の `skillshare sync mcp` ですべてのプロジェクトに反映されます。ダッシュボードでは、プロジェクトの「MCP」タブの「オプトインのサーバー」でオンにでき、「他のプロジェクトから」のピッカーは検索でき、複数のプロジェクトが共有するサーバーを 1 行にまとめます。ダッシュボードはスキルの `metadata.version` も `v1.2.0` のようなタグで表示します。 [MCP ガイド →](https://skillshare.runkids.cc/ja/docs/reference/commands/mcp#share-a-server-with-chosen-projects) · [変更履歴 →](https://skillshare.runkids.cc/changelog)
+> **最新バージョン**：v0.33.0 — dashboard を自分好みに。**Settings → Appearance** のカスタムテーマエディタで、14 種類のプリセットから選ぶか、アクセントカラー、背景の色味、角丸、フォントを自分で決められます。ダークモードは自動で導き出され、すべての文字色は 4.5:1 以上で読みやすく保たれます。テーマはリンクや JSON ファイルで共有できます。Clean と Playful のデザインも見直しました。`skillshare hooks sync -p --trust` は project の hook についても Codex の trust を記録するようになり、MiniMax Code が組み込み target に加わりました。 [テーマガイド →](https://skillshare.runkids.cc/ja/docs/reference/commands/ui#テーマシステム) · [変更履歴 →](https://skillshare.runkids.cc/changelog)
 
 ## skillshare を使う理由
 
@@ -123,6 +123,14 @@ nix profile add github:runkids/skillshare
 ```
 
 更新には `nix profile upgrade skillshare` を使います。flakes を有効にした Nix 2.30 以降が必要です。古い Nix や Lix では `nix profile install` を使ってください。NixOS や Home Manager の設定では flake の `overlays.default` を使えます。
+
+### CLI：PyPI
+
+```bash
+uv tool install skillshare-cli
+```
+
+`pipx install skillshare-cli` や `pip install skillshare-cli` でもインストールできます。インストールせずに試すには `uvx --from skillshare-cli skillshare` を実行します。更新はインストーラーで行います（`uv tool upgrade skillshare-cli` や `pipx upgrade skillshare-cli` など）。
 
 ### GitHub Actions
 

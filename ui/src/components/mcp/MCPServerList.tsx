@@ -1,14 +1,25 @@
 import { scalarText } from '../../lib/scalarText';
-import { Fragment, useState } from 'react';
-import { Ellipsis } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Ellipsis, Pencil } from 'lucide-react';
 import { useT, plural } from '../../i18n';
 import { shortenHome } from '../../lib/paths';
 import Reveal from '../Reveal';
 import { mcpOffTargets } from '../../api/mcp';
-import { describeEndpoint, hasToolPolicy, toolSummary, writes, type MatrixRow } from './mcpView';
+import {
+  describeEndpoint,
+  hasToolPolicy,
+  overrideParts,
+  toolSummary,
+  usingChanges,
+  writes,
+  type MatrixRow,
+} from './mcpView';
 import { TargetPill, TargetToggles } from './TargetPicker';
 import type { MCPCheckFinding } from '../../api/mcpCheck';
 import MCPCheckFindings, { MCPCheckTag } from './MCPCheckFindings';
+import MCPProjectPicker from './MCPProjectPicker';
+import Button from '../Button';
+import SharedStatus, { type SharedLookup } from './SharedStatus';
 
 interface Props {
   rows: MatrixRow[];
@@ -24,6 +35,16 @@ interface Props {
   problems?: Record<string, MCPCheckFinding[]>;
   /** The projects that use each server that loads only in those (`global: false`). */
   users?: Record<string, string[]>;
+  /** The mcp.projects roots such a server can be ticked for. */
+  roots?: string[];
+  /** Saves the projects ticked for such a server; left out, they are not offered. */
+  onProjects?: (name: string, picked: string[]) => void;
+  /** How each project that uses such a server loads it, and where to change that. */
+  shared?: SharedLookup & { onOverride: (name: string, root: string) => void };
+  /** Opens a project's MCP tab from the projects listed under a shared server. */
+  onOpenProject?: (root: string) => void;
+  /** Hears whether any row has project ticks not saved yet, which leaving the page would drop. */
+  onUnsavedChange?: (unsaved: boolean) => void;
 }
 
 /**
@@ -40,9 +61,62 @@ export default function MCPServerList({
   disabled = false,
   problems = {},
   users = {},
+  roots = [],
+  onProjects,
+  shared,
+  onOpenProject,
+  onUnsavedChange,
 }: Props) {
   const t = useT();
   const [open, setOpen] = useState<string[]>([]);
+  // Rows whose project ticks are not saved; any of them keeps every project link waiting.
+  const [unsavedRows, setUnsavedRows] = useState<string[]>([]);
+  const markUnsaved = useCallback(
+    (name: string, unsaved: boolean) =>
+      setUnsavedRows((prev) => {
+        const rest = prev.filter((x) => x !== name);
+        return unsaved ? [...rest, name] : rest;
+      }),
+    [],
+  );
+  const anyUnsaved = unsavedRows.length > 0;
+  // Only a list holding unsaved ticks speaks, and it takes them back when they go or it unmounts,
+  // so a clean list shown beside it never clears them.
+  useEffect(() => {
+    if (!anyUnsaved || !onUnsavedChange) return;
+    onUnsavedChange(true);
+    return () => onUnsavedChange(false);
+  }, [anyUnsaved, onUnsavedChange]);
+  const overridden = (name: string) =>
+    (users[name] ?? []).filter(
+      (root) =>
+        shared &&
+        !shared.replaced(name, root) &&
+        overrideParts(t, shared.overrideOf(name, root)).length > 0,
+    ).length;
+  // A project's own server, or what it changes in this one or inherits, and the way to change that.
+  const detail = (name: string, root: string, using: boolean) => {
+    if (!shared) return undefined;
+    const own = shared.replaced(name, root);
+    if (!using && !own) return undefined;
+    const parts = own ? [] : overrideParts(t, shared.overrideOf(name, root));
+    return (
+      <span className="flex shrink-0 items-center gap-2">
+        <SharedStatus name={name} root={root} using={using} shared={shared} />
+        {using && !own && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            onClick={() => shared.onOverride(name, root)}
+          >
+            <Pencil size={13} />
+            {t(parts.length > 0 ? 'mcp.override.edit' : 'mcp.override.add')}
+          </Button>
+        )}
+      </span>
+    );
+  };
 
   return (
     <div className="ss-list">
@@ -51,6 +125,7 @@ export default function MCPServerList({
         const offered = row.server?.disabled
           ? targets.filter((x) => offTargets.includes(x))
           : targets;
+        const overrides = shared ? overridden(row.name) : 0;
         const selected = row.server ? targetsOf(row.name).filter((x) => offered.includes(x)) : [];
         const expanded = open.includes(row.name);
         const http = Boolean(row.server?.url);
@@ -96,6 +171,11 @@ export default function MCPServerList({
                       : t(plural('mcp.shared.badge', users[row.name].length), {
                           count: users[row.name].length,
                         })}
+                  </span>
+                )}
+                {overrides > 0 && (
+                  <span className="ss-tag inf">
+                    {t(plural('mcp.override.count', overrides), { count: overrides })}
                   </span>
                 )}
                 {problems[row.name] && <MCPCheckTag findings={problems[row.name]} />}
@@ -144,11 +224,90 @@ export default function MCPServerList({
                   tags={selected.includes('pi') && !row.server?.disabled ? { pi } : undefined}
                   onToggle={(target, on) => onToggle(row.name, target, on)}
                 />
+                {users[row.name] && onProjects && (
+                  <RowProjects
+                    // A save changes who uses it, which starts the ticks again from there.
+                    key={users[row.name].join('\n')}
+                    name={row.name}
+                    roots={roots}
+                    saved={users[row.name]}
+                    disabled={disabled}
+                    onSave={(picked) => onProjects(row.name, picked)}
+                    detail={shared && ((root, using) => detail(row.name, root, using))}
+                    onOpen={onOpenProject}
+                    locked={anyUnsaved}
+                    onUnsaved={markUnsaved}
+                  />
+                )}
               </div>
             </Reveal>
           </Fragment>
         );
       })}
+    </div>
+  );
+}
+
+/** The projects ticked for one server in its row, saved with one button rather than per tick. */
+function RowProjects({
+  name,
+  roots,
+  saved,
+  disabled,
+  onSave,
+  detail,
+  onOpen,
+  locked,
+  onUnsaved,
+}: {
+  name: string;
+  roots: string[];
+  saved: string[];
+  disabled: boolean;
+  onSave: (picked: string[]) => void;
+  detail?: (root: string, using: boolean) => ReactNode;
+  onOpen?: (root: string) => void;
+  locked: boolean;
+  onUnsaved: (name: string, unsaved: boolean) => void;
+}) {
+  const t = useT();
+  const [picked, setPicked] = useState(saved);
+  const changed = usingChanges(name, saved, picked).length > 0;
+  useEffect(() => {
+    if (!changed) return;
+    onUnsaved(name, true);
+    return () => onUnsaved(name, false);
+  }, [changed, name, onUnsaved]);
+  return (
+    <div className="basis-full pt-3.5 [border-top:var(--sep)]">
+      <MCPProjectPicker
+        roots={roots}
+        saved={saved}
+        picked={picked}
+        onChange={setPicked}
+        disabled={disabled}
+        hint={t('mcp.projectsPick.hint')}
+        detail={detail}
+        onOpen={onOpen}
+        locked={locked}
+      >
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={!changed || disabled}
+          onClick={() => setPicked(saved)}
+        >
+          {t('mcp.projectsPick.revert')}
+        </Button>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={!changed || disabled}
+          onClick={() => onSave(picked)}
+        >
+          {t('common.save')}
+        </Button>
+      </MCPProjectPicker>
     </div>
   );
 }

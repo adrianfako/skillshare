@@ -54,8 +54,9 @@ Agents, and review the changes. **Save and sync** applies the settings immediate
 
 In the dashboard, **Add server** takes either shape: fill in the fields, or paste
 a configuration. The paste side also loads a file, which is the browser's
-equivalent of `mcp import --file`. Pasted JSON is recognized automatically; for
-TOML, choose whether it came from Codex or Grok. When the paste holds one server
+equivalent of `mcp import --file`. Pasted JSON is recognized automatically; to keep
+fields only its Agent reads, such as Claude Code's `alwaysLoad`, pick that Agent under
+**From**. For TOML, choose whether it came from Codex or Grok. When the paste holds one server
 and Pi is ticked, the dialog also shows the Pi settings of the form: tool exposure and
 other Pi settings. The form's **Other Agent settings** takes any other Agent's native fields as
 JSON, such as a Codex approval mode; see [`options`](../../reference/commands/mcp.md#agent-options). The **Skillshare** tab adds `skillshare mcp serve`, which
@@ -230,9 +231,10 @@ Codex forwards local variables by name, so `env.KEY.fromEnv` must also be `KEY`
 when Codex is selected. A target that cannot represent a setting blocks the
 preview instead of dropping it. Client-specific placeholders and input prompts must
 be resolved explicitly before import. Agent-specific fields such as Codex
-`startup_timeout_sec` or `cwd` are not imported; import lists them as warnings, and
-sync keeps them in that Agent's existing entry. To manage them from the source, set them
-under the server's [`options`](../../reference/commands/mcp.md#agent-options).
+`startup_timeout_sec` or `cwd` are imported under the server's
+[`options`](../../reference/commands/mcp.md#agent-options) for that Agent, so sync writes
+them back to it and to no other Agent. A field `options` cannot hold, such as a plain-text
+credential, is listed as a warning and left out.
 
 ## Import existing connections
 

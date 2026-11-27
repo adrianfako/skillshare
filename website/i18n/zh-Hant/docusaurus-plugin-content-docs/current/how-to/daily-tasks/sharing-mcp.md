@@ -48,8 +48,8 @@ skillshare mcp add
 **Save and sync** 會立即套用設定；**Save only** 則只保留該定義，供之後的 `skillshare sync mcp` 使用。
 
 在 dashboard 中，**Add server** 支援兩種形式：填寫欄位，或貼上一份設定。
-貼上這一側也支援載入檔案，等同於瀏覽器版的 `mcp import --file`。貼上的 JSON 會自動被辨識；
-若是 TOML，則需選擇它來自 Codex 還是 Grok。若貼上的內容只有一個伺服器且勾選了 Pi，
+貼上這一側也支援載入檔案，等同於瀏覽器版的 `mcp import --file`。貼上的 JSON 會自動被辨識；若要保留只有該 Agent 讀取的欄位，例如 Claude Code 的 `alwaysLoad`，
+請在 **From** 選擇該 Agent。若是 TOML，則需選擇它來自 Codex 還是 Grok。若貼上的內容只有一個伺服器且勾選了 Pi，
 對話框也會顯示表單中的 Pi 設定：工具曝光模式與其他 Pi 設定。表單的 **其他 Agent 設定** 以 JSON 輸入其他 Agent 的原生欄位，例如 Codex 的核准模式，詳見 [`options`](../../reference/commands/mcp.md#agent-options)。**Skillshare** 分頁會加入 `skillshare mcp serve`，
 [透過 MCP 提供你的 skills](/docs/reference/commands/mcp#serve-skills-over-mcp) 給無法透過 sync 取得 skills 的
 Agent：選擇要提供哪些 skills、勾選 Agents，它會標出已經同步 skills、因此會看到兩次的 Agents。在專案的 **MCP** 分頁中，**From another project** 會用其他專案已有的伺服器填好表單；複製出來的伺服器使用這個專案的 Agents，而不是原專案的。清單可依伺服器名稱或專案資料夾搜尋；多個專案以相同名稱、相同設定擁有的伺服器只列出一次，並附上擁有它的資料夾。**Import from a target** 是另一個獨立功能，
@@ -203,9 +203,9 @@ Skillshare 只會寫入變數參照，絕不會自行解析出實際值。請將
 Codex 是以名稱轉發本機變數，因此選擇 Codex 時，`env.KEY.fromEnv` 也必須是 `KEY`。
 若某個 target 無法表示某項設定，會直接阻擋預覽，而不是默默捨棄它。client 專屬的
 佔位符與輸入提示（input prompts）必須先明確解析後才能匯入。Agent 專屬的欄位，
-例如 Codex 的 `startup_timeout_sec` 或 `cwd`，不會被匯入；匯入會將它們列為警告，
-並在同步時保留在該 Agent 既有的項目中。若要從 source 管理它們，請在 server 的
-[`options`](../../reference/commands/mcp.md#agent-options) 下設定。
+例如 Codex 的 `startup_timeout_sec` 或 `cwd`，會被匯入到 server 的
+[`options`](../../reference/commands/mcp.md#agent-options) 下該 Agent 的名下，因此同步時只會寫回該 Agent，不會寫入其他 Agent。
+`options` 無法容納的欄位，例如明文憑證，會被列為警告並被省略。
 
 ## 匯入既有的連線
 
