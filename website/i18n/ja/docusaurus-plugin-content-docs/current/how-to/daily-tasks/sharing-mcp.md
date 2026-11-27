@@ -52,7 +52,8 @@ MCP プロバイダーから提供された URL または JSON を貼り付け�
 
 ダッシュボードでは、**Add server** はどちらの形式にも対応しています。フィールドに入力するか、設定を
 貼り付けるかです。貼り付け側はファイルの読み込みにも対応しており、これはブラウザ版の
-`mcp import --file` に相当します。貼り付けられた JSON は自動的に認識されます。TOML の場合は、
+`mcp import --file` に相当します。貼り付けられた JSON は自動的に認識されます。その Agent だけが読むフィールド（Claude Code の `alwaysLoad` など）を残すには、
+**From** でその Agent を選択します。TOML の場合は、
 Codex 由来か Grok 由来かを選択します。貼り付けた内容がサーバー 1 つだけで Pi にチェックが入っている場合は、
 ダイアログにフォームの Pi 設定（ツールの公開方法、その他の Pi 設定）も表示されます。フォームの **その他の Agent 設定** では、Codex の承認モードなど、ほかの Agent のネイティブフィールドを JSON で入力できます（[`options`](../../reference/commands/mcp.md#agent-options) を参照）。**Skillshare** タブは `skillshare mcp serve` を追加します。これは sync で Skill を受け取らない Agent に
 [MCP で Skill を提供します](/docs/reference/commands/mcp#serve-skills-over-mcp)。Skill を選び、Agent にチェックを入れます。すでに Skill を sync していて
@@ -216,9 +217,9 @@ Codex はローカル変数を名前で転送するため、Codex を選択す�
 一致している必要があります。設定を表現できない Target は、それを黙って落とすのではなくプレビューを
 ブロックします。クライアント固有のプレースホルダーと入力プロンプトは、Import の前に明示的に解決して
 おく必要があります。Codex の `startup_timeout_sec` や `cwd` のような Agent 固有のフィールドは
-Import されません。Import はそれらを警告として一覧表示し、Sync はその Agent の既存エントリ内にそれらを
-維持します。source から管理するには、サーバーの
-[`options`](../../reference/commands/mcp.md#agent-options) に設定します。
+サーバーの
+[`options`](../../reference/commands/mcp.md#agent-options) の下にその Agent 用として Import されるため、Sync はそれをその Agent にだけ書き戻します。
+平文の認証情報のように `options` に保持できないフィールドは、警告として一覧表示され除外されます。
 
 ## 既存の接続をインポートする
 

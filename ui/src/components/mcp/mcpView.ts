@@ -1,5 +1,5 @@
 import { isShared, mcpOffTargets, mcpTargets } from '../../api/mcp';
-import type { MCPPlan, MCPProject, MCPServer, MCPToolPolicy } from '../../api/mcp';
+import type { MCPOverride, MCPPlan, MCPProject, MCPServer, MCPToolPolicy } from '../../api/mcp';
 import { plural } from '../../i18n';
 
 export type MCPChange = MCPPlan['changes'][number];
@@ -101,7 +101,11 @@ export function sharedUsers(source?: {
   return users;
 }
 
-/** Where a shared server that names no targets goes: each using project's targets, or the default where it names none. */
+/**
+ * Where a shared server goes: in each project that uses it, the targets that project's
+ * override names, else the server's own, else the project's, else the default. Used by no
+ * project, it goes nowhere yet and shows the targets it names.
+ */
 export function sharedTargets(
   source: {
     targets?: string[] | null;
@@ -110,13 +114,88 @@ export function sharedTargets(
   },
   name: string,
 ): string[] {
+  const users = sharedUsers(source)[name] ?? [];
+  // Used by no project yet, it shows the targets it names, if any.
+  if (users.length === 0) return [...(source.servers[name]?.targets ?? [])];
   const out: string[] = [];
-  for (const root of sharedUsers(source)[name] ?? []) {
-    for (const target of source.projects?.[root].targets ?? source.targets ?? []) {
+  for (const root of users) {
+    for (const target of sharedInRoot(source, name, root).targets) {
       if (!out.includes(target)) out.push(target);
     }
   }
   return out;
+}
+
+/**
+ * A shared server as one project that uses it loads it, as sync writes it there: the project's
+ * override applied, and the targets it goes to in that project. Targets and tools replace the
+ * server's; piOptions and options are merged into it key by key.
+ */
+export function sharedInRoot(
+  source: {
+    targets?: string[] | null;
+    servers: Record<string, MCPServer>;
+    projects?: Record<string, MCPProject>;
+  },
+  name: string,
+  root: string,
+): MCPServer & { targets: string[] } {
+  const server = source.servers[name] ?? {};
+  const project = source.projects?.[root];
+  const override = project?.overrides?.[name] ?? {};
+  const options = { ...server.options };
+  for (const [agent, fields] of Object.entries(override.options ?? {})) {
+    options[agent] = { ...options[agent], ...fields };
+  }
+  return {
+    ...server,
+    ...(hasToolPolicy(override.tools) && { tools: override.tools }),
+    ...(Object.keys(override.piOptions ?? {}).length > 0 && {
+      piOptions: { ...server.piOptions, ...override.piOptions },
+    }),
+    ...(Object.keys(override.options ?? {}).length > 0 && { options }),
+    targets: [...(override.targets ?? server.targets ?? project?.targets ?? source.targets ?? [])],
+  };
+}
+
+/** What a project's override changes, a few words each; empty when it changes nothing. */
+export function overrideParts(
+  t: (key: string, params?: Record<string, string | number>, fallback?: string) => string,
+  override?: MCPOverride,
+  /** The shared server, to name the exposure the MCP page gives the other projects. */
+  shared?: MCPServer,
+): string[] {
+  if (!override) return [];
+  const parts: string[] = [];
+  if (override.targets) {
+    parts.push(
+      t('mcp.override.partTargets', {
+        targets: override.targets.length
+          ? override.targets.map(targetLabel).join(', ')
+          : t('mcp.override.noAgents'),
+      }),
+    );
+  }
+  const { exposure, ...otherPi } = override.piOptions ?? {};
+  if (exposure !== undefined) {
+    const short = (x: unknown) => t(`mcp.piExposureShort.${String(x)}`, undefined, String(x));
+    parts.push(
+      shared
+        ? t('mcp.override.partExposureFrom', {
+            value: short(exposure),
+            shared: short(shared.piOptions?.exposure ?? 'codemode'),
+          })
+        : t('mcp.override.partExposure', { value: short(exposure) }),
+    );
+  }
+  if (hasToolPolicy(override.tools)) {
+    parts.push(t('mcp.tools.chip', { summary: toolSummary(t, override.tools) }));
+  }
+  // Settings only config.yaml holds still make the project differ, so they are named too.
+  if (Object.keys(otherPi).length > 0 || Object.keys(override.options ?? {}).length > 0) {
+    parts.push(t('mcp.override.partOther'));
+  }
+  return parts;
 }
 
 /** The mcp.projects root a change belongs to, if any. */
@@ -221,6 +300,23 @@ const importErrorKeys: Record<string, string> = {
   'no MCP entries found': 'mcp.importError.noEntries',
   'source saved; unresolved conflicts prevented adoption': 'mcp.importError.notAdopted',
   'no MCP entries found; select the matching client format': 'mcp.importError.noEntries',
+};
+
+// import.go's warning for an Agent's field left out; the suffix marks a guessed format.
+const agentFieldWarning =
+  /^Agent-specific field not imported: (\S+)(; import the config with --from <agent> to keep it)?$/;
+
+/** An import warning in the UI's words. pickable: the dialog offers the source Agent, so a guessed format's field can be kept there. */
+export const describeImportWarning = (
+  t: (key: string, params?: Record<string, string>) => string,
+  message: string,
+  pickable: boolean,
+) => {
+  const m = agentFieldWarning.exec(message);
+  if (!m) return message;
+  return t(m[2] && pickable ? 'mcp.importWarn.agentFieldPick' : 'mcp.importWarn.agentField', {
+    field: m[1],
+  });
 };
 
 const kiloProjectEnvPrefix = 'Kilo Code MCP ';
@@ -733,3 +829,11 @@ export const projectFileTargets = (
   ]
     .filter((x) => paths[x])
     .sort();
+
+/** What saving `picked` changes: one `using` per project that turns the server on or off. */
+export function usingChanges(name: string, saved: string[], picked: string[]) {
+  return [
+    ...saved.filter((x) => !picked.includes(x)).map((project) => ({ project, name, using: false })),
+    ...picked.filter((x) => !saved.includes(x)).map((project) => ({ project, name, using: true })),
+  ];
+}

@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **Dernière version** : v0.31.0 — Partagez un serveur MCP avec les seuls projets qui en ont besoin : donnez `global: false` à un serveur de `mcp.servers` et ajoutez-le à `use` dans la racine de chaque projet ; une seule modification met à jour tous les projets au prochain `skillshare sync mcp`. Dans le tableau de bord, activez-le depuis l'onglet **MCP** d'un projet, sous **Serveurs à activer**, et le sélecteur **Depuis un autre projet** permet désormais de chercher et n'affiche qu'une fois un serveur partagé par plusieurs projets. Le tableau de bord affiche aussi le `metadata.version` d'un skill sous forme d'étiquette, par exemple `v1.2.0`. [Guide MCP →](https://skillshare.runkids.cc/docs/reference/commands/mcp#share-a-server-with-chosen-projects) · [Toutes les versions →](https://github.com/runkids/skillshare/releases)
+> **Dernière version** : v0.33.0 — Personnalisez le dashboard : **Settings → Appearance** propose un éditeur de thème avec 14 préréglages, ou votre propre couleur d'accent, teinte de fond, coins et police. Le mode sombre est dérivé pour vous, chaque couleur de texte reste lisible à 4.5:1, et un thème se partage par lien ou fichier JSON. Clean et Playful ont aussi été retravaillés. `skillshare hooks sync -p --trust` enregistre désormais la confiance Codex pour les hooks d'un projet, et MiniMax Code devient un target intégré. [Guide des thèmes →](https://skillshare.runkids.cc/docs/reference/commands/ui#theme-system) · [Toutes les versions →](https://github.com/runkids/skillshare/releases)
 
 ## Pourquoi skillshare
 
@@ -123,6 +123,14 @@ nix profile add github:runkids/skillshare
 ```
 
 Mettez à jour avec `nix profile upgrade skillshare`. Nécessite Nix 2.30+ avec les flakes activés ; avec un Nix plus ancien ou Lix, utilisez `nix profile install`. Les configurations NixOS et Home Manager peuvent utiliser l'`overlays.default` du flake.
+
+### CLI : PyPI
+
+```bash
+uv tool install skillshare-cli
+```
+
+Ou `pipx install skillshare-cli`, ou `pip install skillshare-cli`. Pour essayer skillshare sans l'installer, lancez `uvx --from skillshare-cli skillshare`. Mettez à jour avec votre installeur, par exemple `uv tool upgrade skillshare-cli` ou `pipx upgrade skillshare-cli`.
 
 ### GitHub Actions
 

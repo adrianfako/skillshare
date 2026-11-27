@@ -8,7 +8,7 @@ Use when changing React components, pages, CSS, responsive layouts, interactions
 2. Search neighboring pages/components and existing tokens/classes before creating anything new.
 3. Preserve data, loading, error, empty, keyboard, and accessibility states.
 4. Build and test inside the devcontainer, then capture and inspect screenshots for visual changes.
-5. Check Clean/Playful × light/dark for the dashboard, and light/dark plus affected breakpoints for the website.
+5. Check Clean/Playful/Custom × light/dark for the dashboard, and light/dark plus affected breakpoints for the website.
 
 ## Dashboard Sources of Truth
 
@@ -25,7 +25,7 @@ Use when changing React components, pages, CSS, responsive layouts, interactions
 | `?kind=` query strings | `kindQuery()` in `ui/src/api/http.ts` |
 | Translation strings | `ui/src/i18n/` |
 
-The dashboard supports Clean and Playful styles plus light, dark, and system modes. New UI must use CSS variables, token utilities, and existing `ss-*` classes. Never hardcode colors, radii, shadows, or fonts. Scope Playful-only pastels to the Playful theme.
+The dashboard supports Clean, Playful and Custom styles plus light, dark, and system modes. New UI must use CSS variables, token utilities, and existing `ss-*` classes. Never hardcode colors, radii, shadows, or fonts. Scope Playful-only pastels to the Playful theme.
 
 `python3 scripts/design/tokens.py` exports the Clean tokens from `components.css` in Design System `tokens.json` format, for mockup tools that read a design system instead of the CSS. A new Clean color variable needs a usage note in that script, or the export (and its test) fails.
 
@@ -42,7 +42,7 @@ Operation hooks such as `useResourceToggle` and `useResourceMove` own requests a
 - Route user-visible strings through `useT()`. Preserve existing English technical labels for status, mode, and kind values. Choose between a counted sentence's `.one` and `.other` keys with `plural(key, count)` from `ui/src/i18n`. Tests fail on a key that is not in `en.json`, whether the dashboard or `internal/plugin` refers to it; `ui/src/i18n/README.md` describes them and their escape hatch.
 - Use existing TanStack Query keys, client helpers, and stale-time patterns. Write no key literal outside `queryKeys.ts`. After a mutation, call `invalidate` with the event that happened; do not list keys or call `invalidateQueries` in a page. A new kind of change gets a new event and a row in `queryEvents.test.ts`.
 
-Below 768 px, the dashboard shell replaces the fixed sidebar with a navigation button and a `DialogShell` menu, and reduces page padding. The menu shares the desktop navigation and closes before link or keyboard navigation attempts (including blocked unsaved edits), on Escape or backdrop click, or when switching to desktop width. Update rows put their actions and status below the resource name on mobile; row actions stay visible on touch devices. Skills and Agents tabs scroll horizontally when needed. The language picker stays within the viewport and scrolls in short windows; the mobile tour omits the hidden sidebar shortcut step.
+Below 768 px, the dashboard shell replaces the fixed sidebar with a navigation button and a `DialogShell` menu, and reduces page padding. The menu shares the desktop navigation and closes before link or keyboard navigation attempts (including blocked unsaved edits), on Escape or backdrop click, or when switching to desktop width. Update rows put their actions and status below the resource name on mobile; row actions never wait for hover. Skills and Agents tabs scroll horizontally when needed. The language picker stays within the viewport and scrolls in short windows; the mobile tour omits the hidden sidebar shortcut step.
 
 Do not run an unconfigured Prettier in `ui/` because it creates broad unrelated diffs. When Tailwind utilities conflict with the `ss-*` component layer, inspect the cascade before adding more complex selectors.
 

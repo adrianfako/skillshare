@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **Última versión**: v0.31.0 — Comparte un servidor MCP solo con los proyectos que lo necesitan: marca un servidor de `mcp.servers` con `global: false` y añádelo a `use` en la raíz de cada proyecto; al editarlo una vez, el siguiente `skillshare sync mcp` actualiza todos los proyectos. En el dashboard, actívalo desde la pestaña **MCP** de un proyecto, en **Servidores opcionales**, y el selector **De otro proyecto** ahora permite buscar y muestra una sola vez un servidor que comparten varios proyectos. El dashboard también muestra el `metadata.version` de un skill como etiqueta, por ejemplo `v1.2.0`. [Guía de MCP →](https://skillshare.runkids.cc/docs/reference/commands/mcp#share-a-server-with-chosen-projects) · [Todas las versiones →](https://github.com/runkids/skillshare/releases)
+> **Última versión**: v0.33.0 — Haz tuyo el dashboard: **Settings → Appearance** tiene un editor de temas personalizados con 14 presets, o eliges tú el color de acento, el tono de fondo, las esquinas y la fuente. El modo oscuro se deriva solo, cada color de texto se mantiene legible a 4.5:1 y un tema se puede compartir como enlace o archivo JSON. Clean y Playful también se renovaron. `skillshare hooks sync -p --trust` ahora registra la confianza de Codex para los hooks de un proyecto, y MiniMax Code es un target integrado. [Guía de temas →](https://skillshare.runkids.cc/docs/reference/commands/ui#theme-system) · [Todas las versiones →](https://github.com/runkids/skillshare/releases)
 
 ## Por qué skillshare
 
@@ -123,6 +123,14 @@ nix profile add github:runkids/skillshare
 ```
 
 Actualiza con `nix profile upgrade skillshare`. Requiere Nix 2.30+ con flakes habilitados; con Nix más antiguo o Lix, usa `nix profile install`. Las configuraciones de NixOS y Home Manager pueden usar el `overlays.default` del flake.
+
+### CLI: PyPI
+
+```bash
+uv tool install skillshare-cli
+```
+
+O `pipx install skillshare-cli`, o `pip install skillshare-cli`. Para probar skillshare sin instalarlo, ejecuta `uvx --from skillshare-cli skillshare`. Actualiza con tu instalador, por ejemplo `uv tool upgrade skillshare-cli` o `pipx upgrade skillshare-cli`.
 
 ### GitHub Actions
 

@@ -47,7 +47,7 @@
 </p>
 
 > [!NOTE]
-> **最新版本**：v0.31.0 — 一個 MCP server 只給需要的專案用：在 `mcp.servers` 裡把 server 設成 `global: false`，再列進各專案 root 的 `use`，改一次就會在下次 `skillshare sync mcp` 更新所有專案。在 dashboard 裡，可以從專案「MCP」分頁的「選用」開啟它；「從其他專案」選單現在可以搜尋，多個專案共用的 server 只列一次。dashboard 也會把 skill 的 `metadata.version` 顯示成標籤，例如 `v1.2.0`。 [MCP 指南 →](https://skillshare.runkids.cc/zh-Hant/docs/reference/commands/mcp#share-a-server-with-chosen-projects) · [更新紀錄 →](https://skillshare.runkids.cc/changelog)
+> **最新版本**：v0.33.0 — 把 dashboard 改成你喜歡的樣子：**Settings → Appearance** 新增自訂主題編輯器，可以從 14 個預設開始，也可以自己選強調色、背景色調、圓角和字型。深色模式會自動推導，所有文字顏色都維持 4.5:1 以上的可讀性，主題還能用連結或 JSON 檔分享。Clean 和 Playful 的設計也重新調整了。`skillshare hooks sync -p --trust` 現在也能為 project 的 hook 記錄 Codex trust，MiniMax Code 也成為內建 target。 [主題指南 →](https://skillshare.runkids.cc/zh-Hant/docs/reference/commands/ui#主題系統) · [更新紀錄 →](https://skillshare.runkids.cc/changelog)
 
 ## 為什麼用 skillshare
 
@@ -123,6 +123,14 @@ nix profile add github:runkids/skillshare
 ```
 
 使用 `nix profile upgrade skillshare` 更新。需要啟用 flakes 的 Nix 2.30 以上版本；較舊的 Nix 或 Lix 請使用 `nix profile install`。NixOS 與 Home Manager 設定可以使用 flake 的 `overlays.default`。
+
+### CLI：PyPI
+
+```bash
+uv tool install skillshare-cli
+```
+
+也可以使用 `pipx install skillshare-cli` 或 `pip install skillshare-cli`。不安裝直接試用，執行 `uvx --from skillshare-cli skillshare`。使用你的安裝工具更新，例如 `uv tool upgrade skillshare-cli` 或 `pipx upgrade skillshare-cli`。
 
 ### GitHub Actions
 

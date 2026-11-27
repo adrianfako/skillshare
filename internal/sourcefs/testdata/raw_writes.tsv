@@ -147,7 +147,7 @@ internal/hub/drafts.go	(DraftStore).persist	os.Remove	tmp.Name()	config
 internal/hub/drafts.go	(DraftStore).persist	os.Rename	tmp.Name(), path	config
 internal/hub/index.go	WriteIndex	os.MkdirAll	filepath.Dir(path)	source-unmigrated
 internal/hub/index.go	WriteIndex	os.WriteFile	path	source-unmigrated
-internal/install/copy.go	copyDirExcluding	os.MkdirAll	dstPath	source-unmigrated
+internal/install/copy.go	copyDirWithState	os.MkdirAll	dstPath	source-unmigrated
 internal/install/copy.go	copyFile	os.OpenFile	dst	source-unmigrated
 internal/install/git_candidate.go	(*GitUpdateCandidate).Close	os.RemoveAll	c.tempDir	tmp
 internal/install/git_candidate.go	StageGitUpdate	os.MkdirAll	filepath.Dir(dst)	tmp
@@ -187,8 +187,15 @@ internal/install/install_update.go	handleUpdate	os.MkdirTemp	""	tmp
 internal/install/install_update.go	handleUpdate	os.RemoveAll	tempDir	tmp
 internal/install/install_update.go	updateRepoRootOrchestrator	os.MkdirTemp	""	tmp
 internal/install/install_update.go	updateRepoRootOrchestrator	os.RemoveAll	tempDir	tmp
-internal/install/local_changes.go	LocalChanges	os.MkdirTemp	""	tmp
+internal/install/installed_shape.go	keepInstalledShape	os.RemoveAll	filepath.Join(dir, filepath.FromSlash(skill.Path))	tmp
+internal/install/installed_shape.go	keepOnlySkillFile	os.RemoveAll	filepath.Join(dir, e.Name())	tmp
+internal/install/local_changes.go	fetchVersion	os.MkdirTemp	""	tmp
+internal/install/local_changes.go	fetchVersion	os.RemoveAll	tmp	tmp
 internal/install/local_changes.go	LocalChanges	os.RemoveAll	tmp	tmp
+internal/install/merge.go	mergeFile	os.MkdirTemp	""	tmp
+internal/install/merge.go	mergeFile	os.RemoveAll	tmp	tmp
+internal/install/merge.go	mergeFile	os.WriteFile	filepath.Join(tmp, names[i])	tmp
+internal/install/merge.go	mergeLocalEdits	os.RemoveAll	tmp	tmp
 internal/install/lock.go	(*Lock).Save	os.Remove	path	project
 internal/install/lock.go	(*Lock).Save	os.WriteFile	path	project
 internal/install/meta.go	WriteMeta	os.WriteFile	metaPath	source-unmigrated
@@ -202,6 +209,8 @@ internal/install/metadata.go	(*MetadataStore).Save	os.Rename	tmpName, target	sou
 internal/install/metadata_migrate.go	cleanupOldRegistry	os.Remove	filepath.Join(dir, "registry.yaml")	source-unmigrated
 internal/install/metadata_migrate.go	walkAgentSidecars	os.Remove	sidecarPath	agents
 internal/install/metadata_migrate.go	walkSkillDir	os.Remove	sidecarPath	source-unmigrated
+internal/install/upstream_changes.go	UpstreamChanges	os.RemoveAll	newTmp	tmp
+internal/install/upstream_changes.go	UpstreamChanges	os.RemoveAll	oldTmp	tmp
 internal/instructions/convert.go	Apply	os.Remove	c.Path	plugin
 internal/instructions/convert.go	WriteFile	os.MkdirAll	filepath.Dir(path)	plugin
 internal/instructions/convert.go	WriteFile	os.WriteFile	path	plugin

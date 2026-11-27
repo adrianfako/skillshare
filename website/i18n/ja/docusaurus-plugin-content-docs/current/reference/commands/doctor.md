@@ -196,7 +196,7 @@ OpenCode を別の環境（デスクトップのランチャーなど）から�
 ### バージョン
 
 - CLI のバージョン
-- skillshare skill のバージョン（新しい skill が公開されていれば警告。`skillshare upgrade --skill`）
+- skillshare skill のバージョン（新しい skill が公開されていれば警告。`skillshare upgrade --skill`。`.skillignore` で無効になっている場合も警告。`skillshare enable skillshare`）
 - 利用可能な更新のチェック
 
 ### Skill の整合性
@@ -362,6 +362,8 @@ Next
 ```
 
 `nix profile` でインストールした場合、Next 行は `nix profile upgrade skillshare` になります。NixOS や Home Manager が skillshare を提供している場合は、Update 行に Nix の設定を更新してリビルドするよう表示され、Next 行は出ません。
+
+uv、pipx、pip でインストールした場合、Next 行は `uv tool upgrade skillshare-cli` のようなインストーラーのコマンドになります。
 
 ## JSON 出力
 

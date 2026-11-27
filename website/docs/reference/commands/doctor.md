@@ -196,7 +196,7 @@ If OpenCode starts with a different environment, for example from a desktop laun
 ### Version
 
 - CLI version
-- skillshare skill version, with a warning when a newer skill is published (`skillshare upgrade --skill`)
+- skillshare skill version, with a warning when a newer skill is published (`skillshare upgrade --skill`) or when `.skillignore` disables it (`skillshare enable skillshare`)
 - Checks for available updates
 
 ### Skill Integrity
@@ -367,6 +367,8 @@ Next
 ```
 
 A `nix profile` install gets `nix profile upgrade skillshare` as its Next line. When NixOS or Home Manager provides skillshare, the Update row says to update your Nix configuration and rebuild, and there is no Next line for it.
+
+A uv, pipx or pip install gets its installer's command as its Next line, such as `uv tool upgrade skillshare-cli`.
 
 ## JSON Output
 

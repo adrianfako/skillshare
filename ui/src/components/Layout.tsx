@@ -19,6 +19,7 @@ import {
   Compass,
   Menu,
   X,
+  Gauge,
 } from 'lucide-react';
 import { api, type AuditAllResponse } from '../api/client';
 import { queryKeys, staleTimes } from '../lib/queryKeys';
@@ -84,12 +85,13 @@ const navGroups: { labelKey?: string; items: NavItem[] }[] = [
   {
     labelKey: 'layout.group.maintain',
     items: [
+      { to: '/context', icon: Gauge, labelKey: 'layout.nav.context' },
       { to: '/audit', icon: ShieldCheck, labelKey: 'layout.nav.audit' },
       {
         to: '/settings',
         icon: Settings,
         labelKey: 'layout.nav.settings',
-        also: ['/config', '/backup', '/log', '/doctor'],
+        also: ['/appearance', '/config', '/backup', '/log', '/doctor'],
       },
     ],
   },
@@ -306,7 +308,7 @@ export default function Layout() {
         </div>
       </DialogShell>
 
-      <main className="min-w-0 px-4 py-6 md:ml-[232px] md:px-12 md:py-10">
+      <main className="ss-main min-w-0 px-4 py-6 md:ml-[232px] md:px-12 md:py-10">
         <div className="max-w-[1080px] mx-auto">
           <TargetAgents.Provider value={targetAgents}>
             <Outlet />

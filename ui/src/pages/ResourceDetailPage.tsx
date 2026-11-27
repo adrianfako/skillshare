@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import {
   api,
+  isConnectionLost,
   type AuditResult,
   type DiffTarget,
   type Skill,
@@ -50,7 +51,7 @@ import { targetFilterPatch } from '../lib/targetFilter';
 import { useSyncMatrix } from '../hooks/useSyncMatrix';
 import { projectUrl } from '../components/projects/projectView';
 import { receivesSkill } from '../components/sync/syncView';
-import { formatDateTime, formatRelativeTime, useI18n, useT, plural } from '../i18n';
+import { formatDateTime, formatNumber, formatRelativeTime, useI18n, useT, plural } from '../i18n';
 import AgentIcon from '../components/AgentIcon';
 import Button from '../components/Button';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -63,6 +64,7 @@ import { CODE_EXT, fileTree } from '../lib/fileTree';
 import MarkdownView, { ViewToggle } from '../components/MarkdownView';
 import { SkillDetailSkeleton } from '../components/Skeleton';
 import Spinner from '../components/Spinner';
+import { LocalChanges } from '../components/FileDiffList';
 import { Select } from '../components/Select';
 import { refOptions } from '../components/hub/hubShared';
 import { SkillContextMenu, type ContextMenuItem } from '../components/TargetMenu';
@@ -71,7 +73,14 @@ import { SkillEditor } from '../components/skill-editor';
 import { UninstallDialog } from '../components/resources/UninstallDialog';
 import { MoveDialog } from '../components/resources/MoveDialog';
 import { canMove } from '../lib/moveFolders';
-import { checkKey, hasUpdate, isForceRetryable, updateUnits, useCheckStatuses } from './UpdatePage';
+import {
+  checkKey,
+  hasUpdate,
+  isForceRetryable,
+  isMergeable,
+  updateUnits,
+  useCheckStatuses,
+} from './UpdatePage';
 import { useDiffQuery, useSkillsQuery } from '../hooks/useSharedQueries';
 import { invalidate } from '../lib/queryEvents';
 
@@ -130,8 +139,10 @@ export default function ResourceDetailPage() {
   const [branchTo, setBranchTo] = useState<string | null>(null);
   // The branch being switched to, kept while a force or skip-audit retry may follow.
   const [switchTo, setSwitchTo] = useState<string | null>(null);
-  // The Updates tab links a modified skill here with ?changes=1 to show its edits.
+  // ?changes=1 opens a modified skill with its edits shown.
   const [modified, setModified] = useState(() => searchParams.get('changes') === '1');
+  // Merge only helps for local edits, not for the other skips force can resolve.
+  const [canMerge, setCanMerge] = useState(true);
   const [raw, setRaw] = useState(false);
 
   const skillMaps = useMemo(() => {
@@ -224,11 +235,23 @@ export default function ResourceDetailPage() {
     });
   };
 
-  const runUpdate = async (skipAudit: boolean, force = false, branch = switchTo ?? undefined) => {
+  const runUpdate = async (
+    skipAudit: boolean,
+    force = false,
+    branch = switchTo ?? undefined,
+    merge = false,
+  ) => {
     setUpdating(true);
     try {
       const target = repoOf(resource) ?? (isAgent ? resource.flatName : resource.relPath);
-      const res = await api.update({ name: target, kind: resource.kind, skipAudit, force, branch });
+      const res = await api.update({
+        name: target,
+        kind: resource.kind,
+        skipAudit,
+        force,
+        branch,
+        merge: merge || undefined,
+      });
       const item = res.results[0];
       const retryable =
         item?.action === 'blocked' ||
@@ -249,24 +272,31 @@ export default function ResourceDetailPage() {
               }),
           'success',
         );
-        markUpToDate();
+        // A merged item still differs from its install, so its check result stands.
+        if (!merge) markUpToDate();
         clearAuditCache(queryClient);
         await (branch ? invalidate(queryClient, 'skillBranchSwitched') : refreshResource());
       } else if (item?.action === 'up-to-date') {
         toast(t('resourceDetail.toast.upToDate', { name: resource.name }), 'info');
-        markUpToDate();
+        if (!merge) markUpToDate();
       } else if (item?.action === 'blocked') {
         setBlocked(item.message ?? '');
       } else if (item?.action === 'error') {
         toast(item.message ?? t('resourceDetail.toast.updateFailed'), 'error');
       } else if (item?.action === 'skipped' && isForceRetryable(item.message)) {
+        setCanMerge(isMergeable(item.message));
         setModified(true);
       } else {
         toast(item?.message ?? t('resourceDetail.toast.skipped'), 'warning');
       }
     } catch (e) {
       setSwitchTo(null);
-      toast((e as Error).message, 'error');
+      if (isConnectionLost(e)) {
+        toast(t('common.connectionLost'), 'error');
+        void refreshResource();
+      } else {
+        toast((e as Error).message, 'error');
+      }
     } finally {
       setUpdating(false);
     }
@@ -549,6 +579,7 @@ export default function ResourceDetailPage() {
           message={
             <>
               {t('resourceDetail.modified.message', { name: resource.name })}
+              {canMerge && !switchTo && ` ${t('resourceDetail.modified.mergeHint')}`}
               {/* Local changes can be listed for skills only. */}
               {modified && resource.kind === 'skill' && <LocalChanges relPath={resource.relPath} />}
             </>
@@ -557,6 +588,16 @@ export default function ResourceDetailPage() {
           variant="danger"
           wide
           loading={updating}
+          extraAction={
+            // A branch switch replaces the skill with another branch: nothing to merge into.
+            canMerge && !switchTo
+              ? {
+                  label: t('update.updating.merge'),
+                  onClick: () =>
+                    void runUpdate(false, false, undefined, true).then(() => setModified(false)),
+                }
+              : undefined
+          }
           onConfirm={() => runUpdate(false, true).then(() => setModified(false))}
           onCancel={() => {
             setModified(false);
@@ -678,7 +719,9 @@ function MetaBox({
   const updateNote =
     behind || check.status === 'update-available'
       ? behind && check.behind
-        ? t('update.check.behind', { count: check.behind })
+        ? t(plural('update.check.behind', check.behind), {
+            count: formatNumber(check.behind, locale),
+          })
         : t('update.check.updateAvailable')
       : '';
   const findings = audit?.findings.filter((f) => !f.acknowledged).length ?? 0;
@@ -1473,59 +1516,5 @@ function BlockedDialog({
         </Button>
       </div>
     </DialogShell>
-  );
-}
-
-/** What a remote skill changed since install, each file diffed against the installed version. */
-function LocalChanges({ relPath }: { relPath: string }) {
-  const t = useT();
-  const { data, error, isPending } = useQuery({
-    queryKey: queryKeys.skills.localChanges(relPath),
-    queryFn: () => api.getLocalChanges(relPath),
-    staleTime: 0,
-  });
-  if (isPending)
-    return (
-      <div className="flex justify-center py-6">
-        <Spinner />
-      </div>
-    );
-  if (error)
-    return (
-      <div className="ss-note bad mt-3">
-        {t('resourceDetail.modified.loadFailed', { message: (error as Error).message })}
-      </div>
-    );
-  const status = {
-    modified: t('resourceDetail.modified.status.modified'),
-    added: t('resourceDetail.modified.status.added'),
-    deleted: t('resourceDetail.modified.status.deleted'),
-  };
-  return (
-    <div className="mt-3 flex flex-col gap-3">
-      {data.files.map((f) => (
-        <div key={f.path}>
-          <p className="mb-1 font-mono text-[12.5px]">
-            {f.path} <span className="text-ink-2">· {status[f.status]}</span>
-          </p>
-          <pre
-            className="ss-code !max-h-[40vh] !overflow-auto !whitespace-pre-wrap"
-            style={{ overflowWrap: 'anywhere' }}
-          >
-            {f.diff
-              .replace(/\n$/, '')
-              .split('\n')
-              .map((l, i) => (
-                <span
-                  key={i}
-                  className={l.startsWith('+ ') ? 'add' : l.startsWith('- ') ? 'del' : 'block'}
-                >
-                  {l || ' '}
-                </span>
-              ))}
-          </pre>
-        </div>
-      ))}
-    </div>
   );
 }

@@ -20,6 +20,15 @@ type AgentCheckResult struct {
 	RepoPath string `json:"repoPath,omitempty"`
 	Status   string `json:"status"` // "up_to_date", "drifted", "dirty", "local", "error", "update_available"
 	Message  string `json:"message,omitempty"`
+	// UpstreamChanged marks a drifted agent whose remote has moved on, so
+	// update agents --merge has upstream changes to merge into it.
+	UpstreamChanged bool `json:"upstreamChanged,omitempty"`
+	// DefaultBranch is the branch the remote HEAD points at, for an agent that
+	// recorded no branch. Only the dashboard links with it, so check --json
+	// leaves it out.
+	DefaultBranch string `json:"-"`
+	// treeHash is the git blob hash of the agent file it was installed from.
+	treeHash string
 }
 
 // CheckAgents scans the agents source directory for installed agents and
@@ -123,6 +132,7 @@ func checkOneAgent(store *install.MetadataStore, sourcePath, relPath string) Age
 	result.Version = entry.Version
 	result.RepoURL = entry.RepoURL
 	result.Branch = entry.Branch
+	result.treeHash = entry.TreeHash
 
 	if entry.AgentSourceLost() {
 		result.Status = "error"
@@ -196,16 +206,37 @@ func EnrichAgentResultsWithRemote(results []AgentCheckResult, onDone func(), par
 	outputs := ParallelCheckURLs(inputs, onDone)
 
 	for i, out := range outputs {
+		// Fetched once per remote, and only when an agent's commit moved.
+		var trees *RemoteTrees
+		fetched := false
 		for _, idx := range groups[refs[i]] {
+			results[idx].DefaultBranch = out.DefaultBranch
 			if out.Err != nil {
 				results[idx].Status = "error"
 				results[idx].Message = out.Err.Error()
 				continue
 			}
 			// The remote hash is abbreviated; a tracked repo records the full one.
-			if out.RemoteHash != "" && !strings.HasPrefix(results[idx].Version, out.RemoteHash) && results[idx].Status == "up_to_date" {
+			if out.RemoteHash == "" || strings.HasPrefix(results[idx].Version, out.RemoteHash) {
+				continue
+			}
+			// A moved commit alone does not mean the agent changed: its file's
+			// blob hash, when recorded, decides.
+			if hash := results[idx].treeHash; hash != "" {
+				if !fetched {
+					trees, fetched = FetchRemoteTreeHashesForRef(refs[i].url, refs[i].branch, parseOpts), true
+				}
+				if trees != nil && trees.Hashes[install.AgentBlobPath(results[idx].Source, parseOpts)] == hash {
+					continue
+				}
+			}
+			switch results[idx].Status {
+			case "up_to_date":
 				results[idx].Status = "update_available"
 				results[idx].Message = "newer version available"
+			case "drifted":
+				results[idx].UpstreamChanged = true
+				results[idx].Message += UpstreamChangedNote
 			}
 		}
 	}

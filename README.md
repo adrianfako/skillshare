@@ -48,7 +48,7 @@
 </p>
 
 > [!NOTE]
-> **Latest**: v0.31.0 — Share one MCP server with only the projects that need it: give a server in `mcp.servers` `global: false` and list it under `use` in each project root, and editing it once updates every project on the next `skillshare sync mcp`. In the dashboard, a project's **MCP** tab turns it on under **Opt-in servers**, and the **From another project** picker can now search and lists a server that several projects share only once. The dashboard also shows a skill's `metadata.version` as a tag, such as `v1.2.0`. [MCP guide →](https://skillshare.runkids.cc/docs/reference/commands/mcp#share-a-server-with-chosen-projects) · [All releases →](https://github.com/runkids/skillshare/releases)
+> **Latest**: v0.33.0 — Make the dashboard your own: **Settings → Appearance** has a Custom theme editor with 14 presets, or your own accent, background tint, corners and font. Dark mode is derived for you, every text color stays readable at 4.5:1, and a theme can be shared as a link or JSON file. Clean and Playful are restyled too. `skillshare hooks sync -p --trust` now records Codex trust for a project's hooks, and MiniMax Code is a built-in target. [Theme guide →](https://skillshare.runkids.cc/docs/reference/commands/ui#theme-system) · [All releases →](https://github.com/runkids/skillshare/releases)
 
 ## Why skillshare
 
@@ -124,6 +124,14 @@ nix profile add github:runkids/skillshare
 ```
 
 Update with `nix profile upgrade skillshare`. Requires Nix 2.30+ with flakes enabled; on older Nix or Lix, use `nix profile install`. NixOS and Home Manager configurations can use the flake's `overlays.default`.
+
+### CLI: PyPI
+
+```bash
+uv tool install skillshare-cli
+```
+
+Or `pipx install skillshare-cli`, or `pip install skillshare-cli`. To try skillshare without installing it, run `uvx --from skillshare-cli skillshare`. Update with your installer, such as `uv tool upgrade skillshare-cli` or `pipx upgrade skillshare-cli`.
 
 ### GitHub Actions
 
@@ -416,6 +424,13 @@ Thank you to everyone who has reported a bug, suggested an improvement, or helpe
 <a href="https://github.com/eirikc"><img src="https://github.com/eirikc.png" width="50" style="border-radius:50%" alt="eirikc"></a>
 <a href="https://github.com/AlexisSerneels"><img src="https://github.com/AlexisSerneels.png" width="50" style="border-radius:50%" alt="AlexisSerneels"></a>
 <a href="https://github.com/digitalflex-io"><img src="https://github.com/digitalflex-io.png" width="50" style="border-radius:50%" alt="digitalflex-io"></a>
+<a href="https://github.com/WslzGmzs"><img src="https://github.com/WslzGmzs.png" width="50" style="border-radius:50%" alt="WslzGmzs"></a>
+<a href="https://github.com/NieZhuZhu"><img src="https://github.com/NieZhuZhu.png" width="50" style="border-radius:50%" alt="NieZhuZhu"></a>
+<a href="https://github.com/vivekkushalch"><img src="https://github.com/vivekkushalch.png" width="50" style="border-radius:50%" alt="vivekkushalch"></a>
+<a href="https://github.com/raphaelbahat"><img src="https://github.com/raphaelbahat.png" width="50" style="border-radius:50%" alt="raphaelbahat"></a>
+<a href="https://github.com/dev-seahouse"><img src="https://github.com/dev-seahouse.png" width="50" style="border-radius:50%" alt="dev-seahouse"></a>
+<a href="https://github.com/cazador481"><img src="https://github.com/cazador481.png" width="50" style="border-radius:50%" alt="cazador481"></a>
+<a href="https://github.com/SaladDay"><img src="https://github.com/SaladDay.png" width="50" style="border-radius:50%" alt="SaladDay"></a>
 
 ---
 

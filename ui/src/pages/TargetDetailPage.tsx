@@ -455,7 +455,7 @@ function TargetEditor({ target, targets }: { target: Target; targets: Target[] }
           <>
             {tab === 'skill' && (
               <Link
-                to={`/skills?tab=analyze&target=${encodeURIComponent(target.name)}`}
+                to={`/context?target=${encodeURIComponent(target.name)}`}
                 className="ss-btn ghost"
               >
                 {t('analyze.open')}
@@ -594,7 +594,6 @@ function TargetEditor({ target, targets }: { target: Target; targets: Target[] }
         </div>
       ) : (
         <RailLayout
-          pageScroll
           rail={
             <>
               <FilterCard
